@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { createElement, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parse as parseYaml } from 'yaml';
-import { CONFIG_FIELD_SEARCH_INDEX } from '../src/components/config/configSearchIndex';
+import { CONFIG_FIELD_SEARCH_INDEX } from '../src/features/config/searchIndex';
 import { useVisualConfig } from '../src/hooks/useVisualConfig';
 
 describe('visual config Codex identity-confuse', () => {
