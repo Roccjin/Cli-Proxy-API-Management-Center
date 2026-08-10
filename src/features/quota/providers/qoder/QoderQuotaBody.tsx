@@ -85,7 +85,11 @@ export function QoderQuotaBody({ quota, classes }: QuotaBodyProps<QoderQuotaStat
           <span className={classes.codexPlanValue}>{formatAmount(orgRemaining, unit)}</span>
         </div>
       )}
-      {exceeded && <div className={classes.quotaMessage}>{t('qoder_quota.quota_exceeded')}</div>}
+      {exceeded && (
+        <div className={classes.quotaWarningMessage} role="alert">
+          {t('qoder_quota.quota_exceeded')}
+        </div>
+      )}
     </>
   );
 }
