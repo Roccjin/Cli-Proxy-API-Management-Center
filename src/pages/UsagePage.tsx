@@ -13,7 +13,10 @@ import {
   toTrendPoints,
   type UsageTrendPoint,
 } from '@/utils/usageStats';
-import { createLatestUsageRequestGuard } from './usage-page-request-guard';
+import {
+  createLatestUsageRequestGuard,
+  runLatestUsageRequest,
+} from './usage-page-request-guard';
 import styles from './UsagePage.module.scss';
 
 function StatCard({ label, value, meta }: { label: string; value: number; meta?: string }) {
@@ -65,27 +68,25 @@ export function UsagePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const requestGuard = useRef(createLatestUsageRequestGuard());
 
-  const loadUsage = useCallback(async () => {
-    const requestId = requestGuard.current.begin();
-    setLoading(true);
-    setError(null);
-    try {
-      const nextPayload = await usageApi.getUsage();
-      if (requestGuard.current.isLatest(requestId)) {
-        setPayload(nextPayload);
-        setLastUpdated(new Date());
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (!requestGuard.current.isLatest(requestId)) return;
-      setError(message || t('usage_stats.load_failed'));
-      throw err instanceof Error ? err : new Error(message || t('usage_stats.load_failed'));
-    } finally {
-      if (requestGuard.current.isLatest(requestId)) {
-        setLoading(false);
-      }
-    }
-  }, [t]);
+  const loadUsage = useCallback(
+    () =>
+      runLatestUsageRequest({
+        guard: requestGuard.current,
+        request: () => usageApi.getUsage(),
+        fallbackError: t('usage_stats.load_failed'),
+        onStart: () => {
+          setLoading(true);
+          setError(null);
+        },
+        onSuccess: (nextPayload) => {
+          setPayload(nextPayload);
+          setLastUpdated(new Date());
+        },
+        onError: setError,
+        onFinish: () => setLoading(false),
+      }),
+    [t]
+  );
 
   useEffect(() => {
     void loadUsage().catch(() => undefined);
