@@ -2,7 +2,7 @@ name: Upstream Sync
 
 # Keeps kaitranntt/Cli-Proxy-API-Management-Center synced with
 # router-for-me/Cli-Proxy-API-Management-Center while preserving fork-specific
-# dashboard changes. Clean merges that pass install/lint/build fast-forward main.
+# dashboard changes. Clean merges that pass the full verification gate fast-forward main.
 # Conflicts or gate failures update a single tracking issue.
 
 on:
@@ -208,11 +208,11 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          set -o pipefail
           GATE_LOG=$(mktemp)
           {
-            bun install --frozen-lockfile
-            bun run lint
-            bun run build
+            bun install --frozen-lockfile &&
+              bun run verify
           } 2>&1 | tee "${GATE_LOG}"
           GATE_EXIT=${PIPESTATUS[0]}
           if [ "${GATE_EXIT}" -ne 0 ]; then
@@ -303,17 +303,31 @@ jobs:
           env.FORCE_PR == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GATE_PASSED: ${{ steps.gate.outputs.passed }}
+          REPOSITORY: ${{ github.repository }}
+          SYNC_BRANCH: ${{ steps.branch.outputs.name }}
+          UPSTREAM_HEAD: ${{ steps.check.outputs.upstream_head }}
+          UPSTREAM_TAG: ${{ steps.check.outputs.upstream_tag }}
         run: |
           gh label create "${PR_LABEL}" \
             --color "0E8A16" \
             --description "Automated upstream sync PR." \
-            --repo "${{ github.repository }}" 2>/dev/null || true
+            --repo "${REPOSITORY}" 2>/dev/null || true
 
           TITLE="chore(upstream-sync): pull dashboard upstream"
-          BODY=$(printf "## Upstream sync\n\n- Upstream HEAD: \`${{ steps.check.outputs.upstream_head }}\`\n- Upstream tag: \`${{ steps.check.outputs.upstream_tag }}\`\n\nValidation: Bun frozen install, lint, build.\n")
+          if [ "${GATE_PASSED}" = "true" ]; then
+            VALIDATION=":white_check_mark: Passed <code>bun install --frozen-lockfile</code> and <code>bun run verify</code>."
+          else
+            TITLE="${TITLE} (validation failed)"
+            VALIDATION=":x: **FAILED** <code>bun install --frozen-lockfile</code> or <code>bun run verify</code>; review the workflow gate log before merging."
+          fi
+          BODY=$(printf '## Upstream sync\n\n- Upstream HEAD: <code>%s</code>\n- Upstream tag: <code>%s</code>\n\n### Validation\n\n%s\n' \
+            "${UPSTREAM_HEAD}" \
+            "${UPSTREAM_TAG}" \
+            "${VALIDATION}")
           PR_URL=$(gh pr create \
             --base main \
-            --head "${{ steps.branch.outputs.name }}" \
+            --head "${SYNC_BRANCH}" \
             --title "${TITLE}" \
             --body "${BODY}")
           echo "${PR_URL}"
@@ -328,12 +342,9 @@ jobs:
           steps.check.outputs.has_changes == 'true' &&
           (
             steps.merge.outputs.passed != 'true' ||
+            steps.gate.outputs.passed == 'false' ||
             steps.branch_push.outputs.passed == 'false' ||
-            steps.ffwd.outputs.push_passed == 'false' ||
-            (
-              env.FORCE_PR != 'true' &&
-              steps.gate.outputs.passed == 'false'
-            )
+            steps.ffwd.outputs.push_passed == 'false'
           )
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -346,7 +357,7 @@ jobs:
 
           STATUS=""
           [ "${{ steps.merge.outputs.passed }}" != "true" ] && STATUS="${STATUS}- :warning: merge conflict or merge failure\n"
-          [ "${{ steps.gate.outputs.passed }}" = "false" ] && STATUS="${STATUS}- :x: Bun install/lint/build gate failed\n"
+          [ "${{ steps.gate.outputs.passed }}" = "false" ] && STATUS="${STATUS}- :x: Bun frozen install or full \`bun run verify\` gate failed\n"
           [ "${{ steps.branch.outputs.initial_push_passed }}" = "false" ] && STATUS="${STATUS}- :x: initial sync branch push failed\n"
           [ "${{ steps.branch_push.outputs.passed }}" = "false" ] && STATUS="${STATUS}- :x: merged sync branch push failed\n"
           [ "${{ steps.ffwd.outputs.push_passed }}" = "false" ] && STATUS="${STATUS}- :x: main push failed; remote main was not advanced\n"

@@ -8,7 +8,7 @@ A single-file Web UI (React + TypeScript) for operating and troubleshooting the 
 
 `kaitranntt/Cli-Proxy-API-Management-Center` is maintained as the dashboard release stream for **CLIProxyAPIPlus**. Fork releases publish `management.html` assets that CLIProxyAPIPlus can download and bundle independently from the upstream dashboard.
 
-- Clean upstream updates are merged by the `Upstream Sync` workflow after the package-manager gate and build pass.
+- Clean upstream updates are merged by the `Upstream Sync` workflow after the frozen install and full test/lint/build verification pass.
 - Conflicts, failed gates, or push failures for the merged sync branch or `main` update a single assigned `upstream-sync-blocked` issue.
 - Fork-only release tags use the upstream-compatible `vX.Y.Z-N` suffix pattern when an extra dashboard asset is needed.
 

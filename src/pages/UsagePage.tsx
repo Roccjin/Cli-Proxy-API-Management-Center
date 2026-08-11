@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -13,6 +13,10 @@ import {
   toTrendPoints,
   type UsageTrendPoint,
 } from '@/utils/usageStats';
+import {
+  createLatestUsageRequestGuard,
+  runLatestUsageRequest,
+} from './usage-page-request-guard';
 import styles from './UsagePage.module.scss';
 
 function StatCard({ label, value, meta }: { label: string; value: number; meta?: string }) {
@@ -62,24 +66,32 @@ export function UsagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const requestGuard = useRef(createLatestUsageRequestGuard());
 
-  const loadUsage = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const nextPayload = await usageApi.getUsage();
-      setPayload(nextPayload);
-      setLastUpdated(new Date());
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message || t('usage_stats.load_failed'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  const loadUsage = useCallback(
+    () =>
+      runLatestUsageRequest({
+        guard: requestGuard.current,
+        request: () => usageApi.getUsage(),
+        fallbackError: t('usage_stats.load_failed'),
+        onStart: () => {
+          setLoading(true);
+          setError(null);
+        },
+        onSuccess: (nextPayload) => {
+          setPayload(nextPayload);
+          setLastUpdated(new Date());
+        },
+        onError: setError,
+        onFinish: () => setLoading(false),
+      }),
+    [t]
+  );
 
   useEffect(() => {
-    void loadUsage();
+    void loadUsage().catch(() => undefined);
+    const guard = requestGuard.current;
+    return () => guard.invalidate();
   }, [loadUsage]);
 
   useHeaderRefresh(loadUsage);
@@ -108,7 +120,12 @@ export function UsagePage() {
               {t('usage_stats.last_updated')}: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          <Button variant="secondary" size="sm" onClick={() => void loadUsage()} loading={loading}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void loadUsage().catch(() => undefined)}
+            loading={loading}
+          >
             {t('usage_stats.refresh')}
           </Button>
         </div>

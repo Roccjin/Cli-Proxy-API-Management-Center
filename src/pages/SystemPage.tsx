@@ -16,7 +16,7 @@ import { configApi, versionApi } from '@/services/api';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
 import { formatDateTimeValue } from '@/utils/format';
 import { classifyModels } from '@/utils/models';
-import { STORAGE_KEY_AUTH } from '@/utils/constants';
+import { clearAllAuthStorage } from '@/services/storage/secureStorage';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconClaude from '@/assets/icons/claude.svg';
@@ -165,9 +165,7 @@ export function SystemPage() {
       confirmText: t('common.confirm'),
       onConfirm: () => {
         auth.logout();
-        if (typeof localStorage === 'undefined') return;
-        const keysToRemove = [STORAGE_KEY_AUTH, 'isLoggedIn', 'apiBase', 'apiUrl', 'managementKey'];
-        keysToRemove.forEach((key) => localStorage.removeItem(key));
+        clearAllAuthStorage();
         showNotification(t('notification.login_storage_cleared'), 'success');
       },
     });
