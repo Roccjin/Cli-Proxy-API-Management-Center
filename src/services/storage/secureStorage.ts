@@ -137,21 +137,9 @@ export const resolveLegacyAuthApiBase = (
   const legacy = normalizeApiBase(legacyApiBase);
   const detected = normalizeApiBase(detectedApiBase);
   if (!legacy || !detected) return null;
-  if (legacy === detected) return detected;
-
-  try {
-    const legacyUrl = new URL(legacy);
-    const detectedUrl = new URL(detected);
-    const legacyPath = legacyUrl.pathname.replace(/\/+$/, '') || '/';
-    const detectedPath = detectedUrl.pathname.replace(/\/+$/, '') || '/';
-    if (legacyUrl.origin === detectedUrl.origin && legacyPath === '/' && detectedPath !== '/') {
-      return detected;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+  // Origin equality is insufficient: reverse-proxy paths may identify entirely
+  // different services. Only an exact normalized base can safely reuse a key.
+  return legacy === detected ? detected : null;
 };
 
 const readEnvelopeApiBase = (value: unknown): string => {

@@ -69,10 +69,27 @@ describe('auth storage isolation', () => {
     );
   });
 
-  test('migrates a legacy same-origin root profile to the detected proxy mount once', () => {
+  test('does not migrate or expose a legacy root credential to a same-origin subpath', () => {
     obfuscatedStorage.setItem(
       STORAGE_KEY_AUTH,
       JSON.parse(envelope('https://example.test', 'legacy-key'))
+    );
+    localStorage.setItem('isLoggedIn', 'true');
+    const storage = createScopedAuthStorage(() => 'https://example.test/proxy');
+
+    const restored = storage.getItem(STORAGE_KEY_AUTH);
+
+    expect(restored).toBeNull();
+    expect(obfuscatedStorage.getItem(STORAGE_KEY_AUTH)).not.toBeNull();
+    expect(localStorage.getItem('isLoggedIn')).toBe('true');
+    expect(localStorage.getItem(getAuthLoginStateStorageKey('https://example.test/proxy'))).toBeNull();
+    expect(obfuscatedStorage.getItem(getAuthSelectionStorageKey('https://example.test/proxy'))).toBeNull();
+  });
+
+  test('migrates legacy credentials only when the normalized panel identity is exact', () => {
+    obfuscatedStorage.setItem(
+      STORAGE_KEY_AUTH,
+      JSON.parse(envelope('https://example.test/proxy/v0/management/', 'legacy-key'))
     );
     localStorage.setItem('isLoggedIn', 'true');
     const storage = createScopedAuthStorage(() => 'https://example.test/proxy');
@@ -86,12 +103,10 @@ describe('auth storage isolation', () => {
     expect(localStorage.getItem(getAuthLoginStateStorageKey('https://example.test/proxy'))).toBe(
       'true'
     );
-    expect(
-      obfuscatedStorage.getItem(getAuthSelectionStorageKey('https://example.test/proxy'))
-    ).toBe('https://example.test/proxy');
   });
 
   test('does not auto-use an unrelated legacy tenant or origin', () => {
+    expect(resolveLegacyAuthApiBase('https://example.test', 'https://example.test/proxy')).toBeNull();
     expect(
       resolveLegacyAuthApiBase(
         'https://example.test/tenant-a',
