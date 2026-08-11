@@ -12,12 +12,15 @@ describe('reverse-proxy panel path detection', () => {
     expect(resolvePanelBasePath('/proxy/management.html')).toBe('/proxy');
     expect(resolvePanelBasePath('/proxy/index.htm')).toBe('/proxy');
     expect(resolvePanelBasePath('/assets/dashboard.js')).toBe('/assets');
+    expect(resolvePanelBasePath('/proxy/static/dashboard.json')).toBe('/proxy/static');
     expect(resolvePanelBasePath('/management.html')).toBe('');
   });
 
   test('preserves dotted mount paths instead of treating every dot as a file extension', () => {
     expect(resolvePanelBasePath('/tenant.v1/')).toBe('/tenant.v1');
     expect(resolvePanelBasePath('/tenant.v1')).toBe('/tenant.v1');
+    expect(resolvePanelBasePath('/tenant.json')).toBe('/tenant.json');
+    expect(resolvePanelBasePath('/proxy/dashboard.js')).toBe('/proxy/dashboard.js');
     expect(resolvePanelBasePath('/groups/acme.prod/')).toBe('/groups/acme.prod');
   });
 

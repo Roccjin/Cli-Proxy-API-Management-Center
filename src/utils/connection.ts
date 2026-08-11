@@ -17,6 +17,10 @@ export const computeApiUrl = (base: string): string => {
   return `${normalized}${MANAGEMENT_API_PREFIX}`;
 };
 
+const DASHBOARD_DOCUMENT_FILE = /^(?:management|index)\.html?$/i;
+const STATIC_ASSET_FILE =
+  /\.(?:css|[cm]?js|json|map|svg|png|jpe?g|gif|webp|avif|ico|wasm|txt|xml|woff2?|ttf|eot)$/i;
+
 export const resolvePanelBasePath = (pathname: string): string => {
   const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
   const hasTrailingSlash = /\/$/.test(normalizedPath);
@@ -26,9 +30,12 @@ export const resolvePanelBasePath = (pathname: string): string => {
 
   const lastSlash = withoutTrailingSlash.lastIndexOf('/');
   const lastSegment = withoutTrailingSlash.slice(lastSlash + 1);
-  // Only explicit document/static extensions identify a served file. Reverse
-  // proxy mounts may legitimately contain dots (for example /tenant.v1/).
-  if (/\.(?:html?|css|[cm]?js|json|map|svg|png|jpe?g|gif|webp|avif|ico|wasm|txt|xml)$/i.test(lastSegment)) {
+  const parentPath = withoutTrailingSlash.slice(0, lastSlash);
+  const isKnownStaticAsset = /(?:^|\/)(?:assets|static)$/.test(parentPath) &&
+    STATIC_ASSET_FILE.test(lastSegment);
+  // Arbitrary dotted segments are ambiguous and therefore treated as mounts.
+  // Strip only dashboard document names or files under explicit asset folders.
+  if (DASHBOARD_DOCUMENT_FILE.test(lastSegment) || isKnownStaticAsset) {
     return withoutTrailingSlash.slice(0, lastSlash).replace(/\/+$/, '');
   }
 
