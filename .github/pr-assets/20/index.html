@@ -75,7 +75,7 @@
       <header>
         <div>
           <h1>PR 20 · Dashboard upstream sync and hardening</h1>
-          <p class="muted">Local development build at commit fc473b6 · light theme · 1440×1000 viewport · controlled local API fixture with non-sensitive demo data.</p>
+          <p class="muted">Screenshots captured from local build fc473b6 · behavioral proof rerun at fixed head 0778c02 · light theme · 1440×1000 viewport · controlled local API fixture with non-sensitive demo data.</p>
         </div>
         <button id="theme-toggle" type="button">● Dark</button>
       </header>
@@ -104,13 +104,16 @@
         </div>
         <pre><span class="good">PASS</span> UsagePage: newest request exclusively owns state and loading
 <span class="good">PASS</span> UsagePage: unmount invalidates an in-flight request
-<span class="good">PASS</span> UsagePage: stale failure cannot propagate after newer success
+<span class="good">PASS</span> UsagePage: newer success suppresses stale rejection across production orchestration
+<span class="good">PASS</span> UsagePage: current failure renders locally and rejects to Refresh All
 <span class="good">PASS</span> Auth: same backend remains isolated across panel paths
+<span class="good">PASS</span> Auth: root credentials never migrate or submit to a same-origin subpath
 <span class="good">PASS</span> Auth: scoped and legacy records clear without unrelated data loss
-<span class="good">PASS</span> Paths: extensionless, served-file, and dotted mounts normalize correctly
+<span class="good">PASS</span> Paths: extensionless, explicit served-file, and arbitrary dotted mounts normalize correctly
 <span class="good">PASS</span> Qoder: exhausted quota renders warning severity
 
-Focused runs: 23 pass, 0 fail</pre>
+Focused application runs: 26 pass, 0 fail
+Full verification: 443 tests, lint, typecheck, and production build passed</pre>
       </section>
 
       <section>
