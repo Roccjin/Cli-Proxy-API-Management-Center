@@ -5,7 +5,7 @@ import type { QoderQuotaState } from '@/types';
 import { normalizeNumberValue, normalizeStringValue } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import type { QuotaBodyProps } from '../../types';
-import { qoderRemainingPercent } from './data';
+import { readQoderOrgBucket, readQoderUserBucket, type QoderQuotaBucketView } from './data';
 
 const normalizeBoolean = (value: unknown): boolean => {
   if (typeof value === 'boolean') return value;
@@ -38,52 +38,65 @@ const formatExpiry = (value: unknown): string | null => {
   });
 };
 
+const bucketAmountLabel = (
+  bucket: QoderQuotaBucketView,
+  fallbackUnit: string,
+  remainingText: (amount: string) => string
+): string | null => {
+  const unit = bucket.unit ?? fallbackUnit;
+  if (bucket.used !== null && bucket.total !== null && bucket.total > 0) {
+    return `${formatAmount(bucket.used)} / ${formatAmount(bucket.total, unit)}`;
+  }
+  if (bucket.remaining !== null) {
+    return remainingText(formatAmount(bucket.remaining, unit));
+  }
+  if (bucket.used !== null) {
+    return formatAmount(bucket.used, unit);
+  }
+  return null;
+};
+
 export function QoderQuotaBody({ quota, classes }: QuotaBodyProps<QoderQuotaState>) {
   const { t } = useTranslation();
   const usage = quota.usage ?? null;
   if (!usage) return <div className={classes.quotaMessage}>{t('qoder_quota.empty_data')}</div>;
 
-  const unit = normalizeStringValue(usage.unit) ?? t('qoder_quota.unit_default');
-  const used = normalizeNumberValue(usage.used);
-  const total = normalizeNumberValue(usage.total);
-  const remaining = normalizeNumberValue(usage.remaining);
-  const orgRemaining = normalizeNumberValue(
-    usage.org_resource_remaining ?? usage.orgResourceRemaining
-  );
-  const remainingPercent = qoderRemainingPercent(usage);
+  const fallbackUnit = normalizeStringValue(usage.unit) ?? t('qoder_quota.unit_default');
+  const user = readQoderUserBucket(usage);
+  const org = readQoderOrgBucket(usage);
   const expiry = formatExpiry(usage.expires_at ?? usage.expiresAt);
-  const amountLabel =
-    used !== null && total !== null
-      ? `${formatAmount(used)} / ${formatAmount(total, unit)}`
-      : remaining !== null
-        ? t('qoder_quota.remaining_amount', { amount: formatAmount(remaining, unit) })
-        : null;
   const exceeded = normalizeBoolean(usage.is_quota_exceeded ?? usage.isQuotaExceeded);
+  const remainingText = (amount: string) => t('qoder_quota.remaining_amount', { amount });
 
-  return (
-    <>
+  const renderBucket = (label: string, bucket: QoderQuotaBucketView, showExpiry: boolean) => {
+    const amountLabel = bucketAmountLabel(bucket, fallbackUnit, remainingText);
+    return (
       <div className={classes.quotaRow}>
         <div className={classes.quotaRowHeader}>
-          <span className={classes.quotaModel}>{t('qoder_quota.usage_label')}</span>
+          <span className={classes.quotaModel}>{label}</span>
           <div className={classes.quotaMeta}>
             <span className={classes.quotaPercent}>
-              {remainingPercent === null ? '--' : `${Math.round(remainingPercent)}%`}
+              {bucket.remainingPercent === null ? '--' : `${Math.round(bucket.remainingPercent)}%`}
             </span>
             {amountLabel && <span className={classes.quotaAmount}>{amountLabel}</span>}
-            {expiry && (
+            {showExpiry && expiry && (
               <span className={classes.quotaReset}>
                 {t('qoder_quota.expires_at', { time: expiry })}
               </span>
             )}
           </div>
         </div>
-        <QuotaMeter percent={remainingPercent} classes={classes} />
+        <QuotaMeter percent={bucket.remainingPercent} classes={classes} />
       </div>
-      {orgRemaining !== null && (
-        <div className={classes.codexPlan}>
-          <span className={classes.codexPlanLabel}>{t('qoder_quota.org_resource_remaining')}</span>
-          <span className={classes.codexPlanValue}>{formatAmount(orgRemaining, unit)}</span>
-        </div>
+    );
+  };
+
+  return (
+    <>
+      {user && renderBucket(t('qoder_quota.personal_label'), user, true)}
+      {org && renderBucket(t('qoder_quota.org_label'), org, !user)}
+      {!user && !org && (
+        <div className={classes.quotaMessage}>{t('qoder_quota.empty_data')}</div>
       )}
       {exceeded && (
         <div className={classes.quotaWarningMessage} role="alert">

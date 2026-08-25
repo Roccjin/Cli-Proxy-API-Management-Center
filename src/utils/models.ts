@@ -9,6 +9,9 @@ export interface ModelInfo {
   name: string;
   alias?: string;
   description?: string;
+  type?: string;
+  thinking?: Record<string, unknown>;
+  contextConfig?: Record<string, unknown>;
 }
 
 const MODEL_CATEGORIES = [
@@ -52,6 +55,15 @@ export function normalizeModelList(payload: unknown, { dedupe = false } = {}): M
     }
     if (description) {
       model.description = String(description);
+    }
+    if (typeof entry.type === 'string' && entry.type.trim()) {
+      model.type = entry.type.trim();
+    }
+    if (isRecord(entry.thinking)) {
+      model.thinking = entry.thinking;
+    }
+    if (isRecord(entry.context_config)) {
+      model.contextConfig = entry.context_config;
     }
     return model;
   };

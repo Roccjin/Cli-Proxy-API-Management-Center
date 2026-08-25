@@ -62,6 +62,24 @@ export default defineConfig({
       }
     }
   },
+  // Dev UI is on :5173; management APIs live on CLIProxyAPIPlus (default :8317).
+  // Without this proxy, POST /v0/management/* hits Vite and returns 404.
+  server: {
+    proxy: {
+      '/v0': {
+        target: process.env.VITE_CPA_PROXY_TARGET || 'http://127.0.0.1:8317',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/v0': {
+        target: process.env.VITE_CPA_PROXY_TARGET || 'http://127.0.0.1:8317',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     target: 'es2020',
     outDir: 'dist',

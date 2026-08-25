@@ -59,4 +59,10 @@ export const oauthApi = {
       redirect_url: redirectUrl,
     });
   },
+
+  submitQoderPAT: (pat: string) =>
+    apiClient.post<{ status: string; email?: string; name?: string; error?: string }>(
+      '/qoder-auth-url',
+      { pat }
+    ),
 };

@@ -34,6 +34,7 @@ interface ProviderState {
   callbackSubmitting?: boolean;
   callbackStatus?: 'success' | 'error';
   callbackError?: string;
+  pat?: string;
 }
 
 interface VertexImportResult {
@@ -411,6 +412,27 @@ export function OAuthPage() {
     pollingTimers.current[provider] = timer;
   };
 
+  const submitQoderPAT = async () => {
+    const pat = (states.qoder?.pat || '').trim();
+    if (!pat) {
+      const message = t('auth_login.qoder_pat_required');
+      updateProviderState('qoder', { status: 'error', error: message });
+      showNotification(message, 'warning');
+      return;
+    }
+    updateProviderState('qoder', { status: 'waiting', polling: true, error: undefined });
+    try {
+      await oauthApi.submitQoderPAT(pat);
+      completeProviderAuth('qoder');
+      showNotification(t('auth_login.qoder_oauth_status_success'), 'success');
+      updateProviderState('qoder', { pat: '' });
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      updateProviderState('qoder', { status: 'error', error: message, polling: false });
+      showNotification(`${t('auth_login.qoder_oauth_start_error')} ${message}`, 'error');
+    }
+  };
+
   const startAuth = async (provider: string) => {
     clearProviderTimers(provider);
     updateProviderState(provider, {
@@ -577,11 +599,17 @@ export function OAuthPage() {
 
   const renderOAuthProviderCard = (provider: OAuthProviderCard, featured = false) => {
     const state = states[provider.id] || {};
+    const isQoder = provider.kind === 'builtin' && provider.id === 'qoder';
     const showKimiSignUp = featured && provider.kind === 'builtin' && provider.id === 'kimi';
     const canSubmitCallback =
-      (provider.kind === 'plugin' || CALLBACK_SUPPORTED.has(provider.id)) && Boolean(state.url);
-    const loginButtonLabel =
-      state.status === 'success'
+      !isQoder &&
+      (provider.kind === 'plugin' || CALLBACK_SUPPORTED.has(provider.id)) &&
+      Boolean(state.url);
+    const loginButtonLabel = isQoder
+      ? state.status === 'success'
+        ? t('auth_login.login_another_account')
+        : t('auth_login.qoder_pat_button')
+      : state.status === 'success'
         ? t('auth_login.login_another_account')
         : getProviderText(provider, 'oauth_button');
     const statusBadgeClassName = [
@@ -615,7 +643,10 @@ export function OAuthPage() {
               </Button>
             </div>
           ) : (
-            <Button onClick={() => startAuth(provider.id)} loading={state.polling}>
+            <Button
+              onClick={() => (isQoder ? submitQoderPAT() : startAuth(provider.id))}
+              loading={state.polling}
+            >
               {loginButtonLabel}
             </Button>
           )
@@ -623,8 +654,25 @@ export function OAuthPage() {
       >
         <div className={styles.cardContent}>
           <div className={featured ? styles.featuredHint : styles.cardHint}>
-            {getProviderText(provider, 'oauth_hint')}
+            {isQoder
+              ? t('auth_login.qoder_pat_hint')
+              : getProviderText(provider, 'oauth_hint')}
           </div>
+          {isQoder && (
+            <Input
+              label={t('auth_login.qoder_pat_label')}
+              hint={t('auth_login.qoder_pat_input_hint')}
+              value={state.pat || ''}
+              onChange={(e) =>
+                updateProviderState('qoder', {
+                  pat: e.target.value,
+                  status: undefined,
+                  error: undefined,
+                })
+              }
+              placeholder="pt-…"
+            />
+          )}
           {state.url && (
             <div className={styles.authUrlBox}>
               <div className={styles.authUrlLabel}>

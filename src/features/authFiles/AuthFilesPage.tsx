@@ -26,6 +26,7 @@ import { AuthFilesToolbar } from '@/features/authFiles/components/AuthFilesToolb
 import { BatchActionBar } from '@/features/authFiles/components/BatchActionBar';
 import { OAuthExcludedCard } from '@/features/authFiles/components/OAuthExcludedCard';
 import { OAuthModelAliasCard } from '@/features/authFiles/components/OAuthModelAliasCard';
+import { QoderDefaultsCard } from '@/features/authFiles/components/QoderDefaultsCard';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { VaultHeader } from '@/features/authFiles/components/VaultHeader';
 import { VaultPulse } from '@/features/authFiles/components/VaultPulse';
@@ -763,6 +764,10 @@ export function AuthFilesPage() {
           onRenameAlias={handleRenameAlias}
           onDeleteAlias={handleDeleteAlias}
         />
+
+        <div className={styles.spanFull}>
+          <QoderDefaultsCard disableControls={disableControls} />
+        </div>
       </div>
 
       <AuthFileModelsModal

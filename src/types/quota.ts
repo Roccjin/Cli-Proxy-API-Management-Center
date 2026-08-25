@@ -310,6 +310,14 @@ export interface KimiQuotaState {
   errorStatus?: number;
 }
 
+export interface QoderQuotaBucket {
+  used?: number | string;
+  total?: number | string;
+  remaining?: number | string;
+  percentage?: number | string;
+  unit?: string;
+}
+
 export interface QoderUsageSnapshot {
   used?: number | string;
   total?: number | string;
@@ -322,6 +330,10 @@ export interface QoderUsageSnapshot {
   expiresAt?: number | string;
   org_resource_remaining?: number | string;
   orgResourceRemaining?: number | string;
+  userQuota?: QoderQuotaBucket;
+  user_quota?: QoderQuotaBucket;
+  orgResourcePackage?: QoderQuotaBucket;
+  org_resource_package?: QoderQuotaBucket;
 }
 
 export interface QoderQuotaState {

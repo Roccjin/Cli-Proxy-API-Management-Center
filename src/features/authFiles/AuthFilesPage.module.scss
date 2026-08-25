@@ -95,6 +95,11 @@
   }
 }
 
+.spanFull {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 @include mobile {
   .page {
     gap: 16px;
