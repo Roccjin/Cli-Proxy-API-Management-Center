@@ -737,6 +737,10 @@ export function AuthFilesPage() {
       </section>
 
       <div className={styles.configGrid} ref={oauthSectionRef}>
+        <div className={styles.spanFull}>
+          <QoderDefaultsCard disableControls={disableControls} />
+        </div>
+
         <OAuthExcludedCard
           disableControls={disableControls}
           excludedError={excludedError}
@@ -764,10 +768,6 @@ export function AuthFilesPage() {
           onRenameAlias={handleRenameAlias}
           onDeleteAlias={handleDeleteAlias}
         />
-
-        <div className={styles.spanFull}>
-          <QoderDefaultsCard disableControls={disableControls} />
-        </div>
       </div>
 
       <AuthFileModelsModal

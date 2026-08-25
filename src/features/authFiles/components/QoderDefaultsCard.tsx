@@ -3,75 +3,88 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore, useModelsStore, useNotificationStore } from '@/stores';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
-import { qoderDefaultsApi, type QoderModelDefault } from '@/services/api/qoderDefaults';
+import {
+  QODER_CONTEXT_SIZES,
+  catalogFromV1Models,
+  fallbackQoderCatalog,
+  mergeCatalogWithDefaults,
+  qoderDefaultsApi,
+  type QoderCatalogModel,
+  type QoderModelDefault,
+} from '@/services/api/qoderDefaults';
 import { getErrorMessage, isRecord } from '@/utils/helpers';
-import type { ModelInfo } from '@/utils/models';
 import styles from './OAuthConfigPanels.module.scss';
-
-const upstreamKey = (id: string) => id.replace(/^qoder\//i, '').trim();
-
-const isQoderModel = (model: ModelInfo) => {
-  if ((model.type || '').toLowerCase() === 'qoder') return true;
-  return /^qoder\//i.test(model.name) || /qoder/i.test(model.alias || '');
-};
-
-const thinkingOptions = (model: ModelInfo): string[] => {
-  const thinking = model.thinking;
-  if (!isRecord(thinking) || !Array.isArray(thinking.levels)) return [];
-  return thinking.levels
-    .filter((level): level is string => typeof level === 'string' && level.trim() !== '')
-    .map((level) => level.trim());
-};
-
-const contextOptions = (model: ModelInfo): string[] => {
-  const cfg = model.contextConfig;
-  if (!isRecord(cfg)) return [];
-  return Object.keys(cfg).filter(Boolean);
-};
-
-const zeroAllowed = (model: ModelInfo) =>
-  isRecord(model.thinking) && model.thinking.zero_allowed === true;
 
 export function QoderDefaultsCard({ disableControls }: { disableControls: boolean }) {
   const { t } = useTranslation();
   const { showNotification } = useNotificationStore();
   const apiBase = useAuthStore((state) => state.apiBase);
-  const models = useModelsStore((state) => state.models);
   const fetchModels = useModelsStore((state) => state.fetchModels);
   const resolveApiKeys = useApiKeysForModels();
 
   const [defaults, setDefaults] = useState<Record<string, QoderModelDefault>>({});
+  const [catalog, setCatalog] = useState<QoderCatalogModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
 
-  const qoderModels = useMemo(
-    () => models.filter(isQoderModel),
-    [models]
+  const rows = useMemo(
+    () => mergeCatalogWithDefaults(catalog, defaults),
+    [catalog, defaults]
   );
 
   const load = useCallback(async () => {
     setLoading(true);
     setUnsupported(false);
     try {
-      const next = await qoderDefaultsApi.get();
-      setDefaults(next);
+      setDefaults(await qoderDefaultsApi.get());
     } catch (err: unknown) {
       const status = isRecord(err) && typeof err.status === 'number' ? err.status : undefined;
       if (status === 404) {
         setUnsupported(true);
-      } else {
-        showNotification(`${t('qoder_defaults.save_failed')}: ${getErrorMessage(err)}`, 'error');
+        setLoading(false);
+        return;
+      }
+      showNotification(`${t('qoder_defaults.save_failed')}: ${getErrorMessage(err)}`, 'error');
+    }
+
+    try {
+      const nextCatalog = await qoderDefaultsApi.listModels();
+      if (nextCatalog.length > 0) {
+        setCatalog(nextCatalog);
+        setLoading(false);
+        return;
+      }
+    } catch (err: unknown) {
+      const status = isRecord(err) && typeof err.status === 'number' ? err.status : undefined;
+      if (status === 404) {
+        // Older CPA builds only have /qoder-model-defaults; fall through to /v1/models.
       }
     }
+
     try {
       const keys = await resolveApiKeys({ force: false });
       if (apiBase) {
-        await fetchModels(apiBase, keys[0], false);
+        const list = await fetchModels(apiBase, keys[0], false);
+        const fromV1 = catalogFromV1Models(list);
+        if (fromV1.length > 0) {
+          setCatalog(fromV1);
+          setLoading(false);
+          return;
+        }
       }
     } catch {
-      // model catalog is optional; defaults can still be edited by key
+      const cached = useModelsStore.getState().models;
+      if (cached.length > 0) {
+        const fromV1 = catalogFromV1Models(cached);
+        if (fromV1.length > 0) {
+          setCatalog(fromV1);
+          setLoading(false);
+          return;
+        }
+      }
     }
+    setCatalog(fallbackQoderCatalog());
     setLoading(false);
   }, [apiBase, fetchModels, resolveApiKeys, showNotification, t]);
 
@@ -97,6 +110,19 @@ export function QoderDefaultsCard({ disableControls }: { disableControls: boolea
     });
   };
 
+  const applyContextToAll = (value: string) => {
+    if (!value) return;
+    setDefaults((prev) => {
+      const next = { ...prev };
+      rows.forEach((row) => {
+        const current = { ...(next[row.key] || {}) };
+        current.context = value;
+        next[row.key] = current;
+      });
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -113,6 +139,21 @@ export function QoderDefaultsCard({ disableControls }: { disableControls: boolea
       <header className={styles.panelHead}>
         <h3 className={styles.panelTitle}>{t('qoder_defaults.title')}</h3>
         <div className={styles.panelExtra}>
+          <label className={styles.field}>
+            <span>{t('qoder_defaults.apply_all_context')}</span>
+            <select
+              value=""
+              disabled={disableControls || unsupported || loading || rows.length === 0}
+              onChange={(event) => applyContextToAll(event.target.value)}
+            >
+              <option value="">{t('qoder_defaults.apply_all_placeholder')}</option>
+              {QODER_CONTEXT_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
           <Button
             variant="secondary"
             size="sm"
@@ -134,30 +175,32 @@ export function QoderDefaultsCard({ disableControls }: { disableControls: boolea
       <p className={styles.panelHint}>{t('qoder_defaults.hint')}</p>
       {unsupported ? (
         <div className={styles.empty}>{t('qoder_defaults.unsupported')}</div>
-      ) : qoderModels.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className={styles.empty}>{t('qoder_defaults.empty')}</div>
       ) : (
         <div className={styles.list}>
-          {qoderModels.map((model) => {
-            const key = upstreamKey(model.name);
-            const row = defaults[key] || {};
-            const efforts = thinkingOptions(model);
-            const contexts = contextOptions(model);
+          {rows.map((row) => {
+            const current = defaults[row.key] || {};
+            const efforts = row.thinkingLevels;
+            const contexts = row.contextSizes.length ? row.contextSizes : [...QODER_CONTEXT_SIZES];
+            const emptyContextLabel = row.catalogContext
+              ? t('qoder_defaults.catalog_default', { size: row.catalogContext })
+              : t('qoder_defaults.model_default');
             return (
-              <div key={model.name} className={styles.row}>
+              <div key={row.key} className={styles.row}>
                 <div className={styles.rowMain}>
-                  <div className={styles.rowTitle}>{model.alias || model.name}</div>
-                  <div className={styles.rowMeta}>{key}</div>
+                  <div className={styles.rowTitle}>{row.displayName}</div>
+                  <div className={styles.rowMeta}>{row.key}</div>
                 </div>
                 <label className={styles.field}>
                   <span>{t('qoder_defaults.thinking')}</span>
                   <select
-                    value={row.thinking || ''}
+                    value={current.thinking || ''}
                     disabled={disableControls}
-                    onChange={(event) => updateRow(key, 'thinking', event.target.value)}
+                    onChange={(event) => updateRow(row.key, 'thinking', event.target.value)}
                   >
                     <option value="">{t('qoder_defaults.model_default')}</option>
-                    {zeroAllowed(model) || efforts.length > 0 ? (
+                    {row.zeroAllowed || efforts.length > 0 ? (
                       <option value="off">{t('qoder_defaults.off')}</option>
                     ) : null}
                     {efforts.map((level) => (
@@ -170,11 +213,11 @@ export function QoderDefaultsCard({ disableControls }: { disableControls: boolea
                 <label className={styles.field}>
                   <span>{t('qoder_defaults.context')}</span>
                   <select
-                    value={row.context || ''}
+                    value={current.context || ''}
                     disabled={disableControls}
-                    onChange={(event) => updateRow(key, 'context', event.target.value)}
+                    onChange={(event) => updateRow(row.key, 'context', event.target.value)}
                   >
-                    <option value="">{t('qoder_defaults.model_default')}</option>
+                    <option value="">{emptyContextLabel}</option>
                     {contexts.map((size) => (
                       <option key={size} value={size}>
                         {size}

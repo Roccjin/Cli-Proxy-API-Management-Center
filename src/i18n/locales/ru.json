@@ -663,15 +663,18 @@
   },
   "qoder_defaults": {
     "title": "Значения Qoder по умолчанию",
-    "hint": "Используются, если запрос не задаёт thinking или размер контекста.",
+    "hint": "Если клиент не передаёт context_size / [1m], это значение уходит в Qoder context_length. Пустое значение оставляет каталожный default (обычно 200K).",
     "thinking": "Thinking",
     "context": "Context",
-    "model_default": "По умолчанию модели",
+    "model_default": "Не переопределять",
+    "catalog_default": "Каталог ({{size}})",
+    "apply_all_context": "Контекст для всех",
+    "apply_all_placeholder": "Задать всем…",
     "off": "Выкл.",
     "empty": "Нет моделей Qoder. Сначала добавьте PAT.",
     "save": "Сохранить",
-    "save_success": "Значения Qoder сохранены",
     "save_failed": "Не удалось сохранить",
+    "save_success": "Значения Qoder сохранены",
     "unsupported": "Эта версия CPA не поддерживает значения Qoder по умолчанию."
   },
   "auth_login": {
