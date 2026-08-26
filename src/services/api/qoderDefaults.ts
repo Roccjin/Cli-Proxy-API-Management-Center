@@ -26,12 +26,15 @@ export const FALLBACK_QODER_MODEL_KEYS = [
   'performance',
   'efficient',
   'lite',
-  'qmodel',
+  'cmodel',
+  'qmodel_38max',
   'qmodel_latest',
+  'qmodel',
+  'kmodel_latest',
+  'kmodel',
+  'gmodel',
   'dmodel',
   'dfmodel',
-  'gm51model',
-  'kmodel',
   'mmodel',
 ] as const;
 
