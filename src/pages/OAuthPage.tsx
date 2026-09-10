@@ -11,6 +11,7 @@ import { oauthApi, pluginsApi, type BuiltInOAuthProvider } from '@/services/api'
 import { vertexApi, type VertexImportResponse } from '@/services/api/vertex';
 import { copyToClipboard } from '@/utils/clipboard';
 import { normalizeCodeBuddySite, type CodeBuddySite } from '@/utils/codebuddy';
+import { normalizeWorkBuddySite } from '@/utils/workbuddy';
 import { getErrorMessage, isRecord } from '@/utils/helpers';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { getPluginTitle, resolvePluginAssetURL } from '@/features/plugins/pluginResources';
@@ -23,6 +24,7 @@ import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconQoder from '@/assets/icons/qoder.svg';
 import iconCodeBuddy from '@/assets/icons/codebuddy.svg';
+import iconWorkBuddy from '@/assets/icons/workbuddy.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
@@ -114,6 +116,12 @@ const PROVIDERS: BuiltInOAuthProviderCard[] = [
     id: 'codebuddy',
     titleKey: 'auth_login.codebuddy_oauth_title',
     icon: iconCodeBuddy,
+  },
+  {
+    kind: 'builtin',
+    id: 'workbuddy',
+    titleKey: 'auth_login.workbuddy_oauth_title',
+    icon: iconWorkBuddy,
   },
   {
     kind: 'builtin',
@@ -459,7 +467,9 @@ export function OAuthPage() {
       const extra =
         provider === 'codebuddy'
           ? { region: normalizeCodeBuddySite(states[provider]?.region) }
-          : undefined;
+          : provider === 'workbuddy'
+            ? { region: normalizeWorkBuddySite(states[provider]?.region) }
+            : undefined;
       const res = await oauthApi.startAuth(provider, extra);
       if (!res.state) {
         const message = t('auth_login.missing_state');
@@ -615,7 +625,9 @@ export function OAuthPage() {
     const state = states[provider.id] || {};
     const isQoder = provider.kind === 'builtin' && provider.id === 'qoder';
     const isCodeBuddy = provider.kind === 'builtin' && provider.id === 'codebuddy';
+    const isWorkBuddy = provider.kind === 'builtin' && provider.id === 'workbuddy';
     const codeBuddySite = normalizeCodeBuddySite(state.region);
+    const workBuddySite = normalizeWorkBuddySite(state.region);
     const showKimiSignUp = featured && provider.kind === 'builtin' && provider.id === 'kimi';
     const canSubmitCallback =
       !isQoder &&
@@ -678,7 +690,13 @@ export function OAuthPage() {
                       ? 'auth_login.codebuddy_oauth_hint_cn'
                       : 'auth_login.codebuddy_oauth_hint'
                   )
-                : getProviderText(provider, 'oauth_hint')}
+                : isWorkBuddy
+                  ? t(
+                      workBuddySite === 'cn'
+                        ? 'auth_login.workbuddy_oauth_hint_cn'
+                        : 'auth_login.workbuddy_oauth_hint'
+                    )
+                  : getProviderText(provider, 'oauth_hint')}
           </div>
           {isCodeBuddy && (
             <div className={styles.regionField}>
@@ -700,6 +718,29 @@ export function OAuthPage() {
                 fullWidth
                 size="sm"
                 ariaLabel={t('auth_login.codebuddy_region_label')}
+              />
+            </div>
+          )}
+          {isWorkBuddy && (
+            <div className={styles.regionField}>
+              <span className={styles.regionLabel}>{t('auth_login.workbuddy_region_label')}</span>
+              <Select
+                value={workBuddySite}
+                options={[
+                  { value: 'global', label: t('auth_login.workbuddy_region_global') },
+                  { value: 'cn', label: t('auth_login.workbuddy_region_cn') },
+                ]}
+                onChange={(value) =>
+                  updateProviderState('workbuddy', {
+                    region: normalizeWorkBuddySite(value),
+                    status: undefined,
+                    error: undefined,
+                  })
+                }
+                disabled={state.polling}
+                fullWidth
+                size="sm"
+                ariaLabel={t('auth_login.workbuddy_region_label')}
               />
             </div>
           )}

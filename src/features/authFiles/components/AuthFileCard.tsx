@@ -17,6 +17,7 @@ import type { AuthFileItem } from '@/types';
 import { resolveAuthProvider } from '@/utils/quota';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import { resolveCodeBuddySite } from '@/utils/codebuddy';
+import { resolveWorkBuddySite } from '@/utils/workbuddy';
 import { formatFileSize } from '@/utils/format';
 import {
   QUOTA_PROVIDER_TYPES,
@@ -99,6 +100,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const typeColor = getTypeColor(providerKey, resolvedTheme);
   const typeLabel = getTypeLabel(t, providerKey);
   const codeBuddySite = resolveCodeBuddySite(file);
+  const workBuddySite = resolveWorkBuddySite(file);
   const providerIcon = getAuthFileIcon(providerKey, resolvedTheme);
   // 与 AI 提供商界面一致：Kimi 图标底座随主题切换颜色
   const useThemeSurfaceIcon = isThemeSurfaceIconProvider(providerKey);
@@ -209,6 +211,15 @@ export function AuthFileCard(props: AuthFileCardProps) {
                   codeBuddySite === 'global'
                     ? 'auth_login.codebuddy_region_global'
                     : 'auth_login.codebuddy_region_cn'
+                )}
+              </span>
+            )}
+            {workBuddySite && (
+              <span className={styles.regionBadge}>
+                {t(
+                  workBuddySite === 'global'
+                    ? 'auth_login.workbuddy_region_global'
+                    : 'auth_login.workbuddy_region_cn'
                 )}
               </span>
             )}

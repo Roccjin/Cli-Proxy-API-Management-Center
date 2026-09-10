@@ -25,7 +25,7 @@ export interface UsageApiRow {
 const HTTP_ROUTE_RE = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\//i;
 const HASHED_API_KEY_RE = /^api-key:[0-9a-f]{8}$/i;
 const SAFE_IDENTIFIER_RE =
-  /^(unknown|other|gemini|gemini-cli|aistudio|vertex|claude|codex|openai|openai-compatibility|openai-compatible|antigravity|github-copilot|gitlab|cursor|kiro|kilo|kimi|iflow|codebuddy)$/i;
+  /^(unknown|other|gemini|gemini-cli|aistudio|vertex|claude|codex|openai|openai-compatibility|openai-compatible|antigravity|github-copilot|gitlab|cursor|kiro|kilo|kimi|iflow|codebuddy|workbuddy)$/i;
 
 const numberValue = (value: unknown): number => {
   const n = typeof value === 'number' ? value : Number(value);

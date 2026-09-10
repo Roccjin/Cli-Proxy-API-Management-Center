@@ -376,6 +376,10 @@ export interface CodeBuddyQuotaState {
   errorStatus?: number;
 }
 
+export type WorkBuddyQuotaPackage = CodeBuddyQuotaPackage;
+export type WorkBuddyQuotaSnapshot = CodeBuddyQuotaSnapshot;
+export type WorkBuddyQuotaState = CodeBuddyQuotaState;
+
 // xAI/Grok API payload types
 export interface XaiBillingCent {
   val?: number | string;

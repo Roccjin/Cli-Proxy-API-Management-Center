@@ -15,7 +15,8 @@ export type BuiltInOAuthProvider =
   | 'kimi'
   | 'qoder'
   | 'xai'
-  | 'codebuddy';
+  | 'codebuddy'
+  | 'workbuddy';
 
 export interface OAuthStartResponse {
   url: string;

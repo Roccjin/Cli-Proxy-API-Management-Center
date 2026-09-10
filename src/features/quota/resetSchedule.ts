@@ -129,7 +129,7 @@ export function collectQuotaRowInstants(
     return collectRows((quota as { rows?: WindowLike[] }).rows ?? [], 'row');
   }
 
-  if (provider === 'codebuddy') {
+  if (provider === 'codebuddy' || provider === 'workbuddy') {
     const packages = (
       quota as {
         usage?: { packages?: { name?: string; cycle_end?: string; cycleEnd?: string }[] };

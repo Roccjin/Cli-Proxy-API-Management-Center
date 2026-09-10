@@ -9,6 +9,7 @@ import iconIflow from '@/assets/icons/iflow.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconCodeBuddy from '@/assets/icons/codebuddy.svg';
+import iconWorkBuddy from '@/assets/icons/workbuddy.svg';
 import iconQoder from '@/assets/icons/qoder.svg';
 import iconQwen from '@/assets/icons/qwen.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
@@ -33,7 +34,8 @@ export type QuotaProviderType =
   | 'kimi'
   | 'qoder'
   | 'xai'
-  | 'codebuddy';
+  | 'codebuddy'
+  | 'workbuddy';
 export type OAuthConfigLoadError = 'loading' | 'unsupported' | 'load' | null;
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
@@ -44,6 +46,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'qoder',
   'xai',
   'codebuddy',
+  'workbuddy',
 ]);
 
 export const OAUTH_PROVIDER_PRESETS = [
@@ -73,7 +76,7 @@ export const AUTH_FILE_MANUAL_REFRESH_PROVIDERS = new Set([
   'kimi',
   'xai',
 ]);
-export const AUTH_FILE_MODELS_REFRESH_PROVIDERS = new Set(['qoder', 'codebuddy']);
+export const AUTH_FILE_MODELS_REFRESH_PROVIDERS = new Set(['qoder', 'codebuddy', 'workbuddy']);
 
 // 标签类型颜色配置：权威版本在 @/utils/quota/constants.ts，此处仅转发
 export { TYPE_COLORS } from '@/utils/quota';
@@ -89,6 +92,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   kimi: { light: iconKimiDark, dark: iconKimiLight },
   qoder: iconQoder,
   codebuddy: iconCodeBuddy,
+  workbuddy: iconWorkBuddy,
   qwen: iconQwen,
   vertex: iconVertex,
 };

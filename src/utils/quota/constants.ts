@@ -50,6 +50,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#ebe6ff', text: '#4b32c9' },
     dark: { bg: '#2c1f73', text: '#c4b5fd' },
   },
+  workbuddy: {
+    light: { bg: '#ccfbf1', text: '#0f766e' },
+    dark: { bg: '#134e4a', text: '#5eead4' },
+  },
   vertex: {
     light: { bg: '#e4edfd', text: '#2b5fbc' },
     dark: { bg: '#1a3d80', text: '#89b3f7' },

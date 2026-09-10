@@ -35,6 +35,10 @@ export function isCodeBuddyFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'codebuddy';
 }
 
+export function isWorkBuddyFile(file: AuthFileItem): boolean {
+  return resolveAuthProvider(file) === 'workbuddy';
+}
+
 export function isXaiFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'xai';
 }

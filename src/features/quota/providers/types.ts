@@ -13,6 +13,7 @@ import type {
   CodexQuotaState,
   KimiQuotaState,
   CodeBuddyQuotaState,
+  WorkBuddyQuotaState,
   QoderQuotaState,
   XaiQuotaState,
 } from '@/types';
@@ -26,7 +27,8 @@ export type QuotaProviderType =
   | 'kimi'
   | 'qoder'
   | 'xai'
-  | 'codebuddy';
+  | 'codebuddy'
+  | 'workbuddy';
 
 /** useQuotaStore 的结构契约（storeSelector/storeSetter 依赖）。 */
 export interface QuotaStore {
@@ -37,6 +39,7 @@ export interface QuotaStore {
   qoderQuota: Record<string, QoderQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   codebuddyQuota: Record<string, CodeBuddyQuotaState>;
+  workbuddyQuota: Record<string, WorkBuddyQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
@@ -44,6 +47,7 @@ export interface QuotaStore {
   setQoderQuota: (updater: QuotaUpdater<Record<string, QoderQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   setCodeBuddyQuota: (updater: QuotaUpdater<Record<string, CodeBuddyQuotaState>>) => void;
+  setWorkBuddyQuota: (updater: QuotaUpdater<Record<string, WorkBuddyQuotaState>>) => void;
   clearQuotaCache: () => void;
 }
 

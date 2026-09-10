@@ -23,6 +23,7 @@ describe('isCodeBuddyGlobalDomain', () => {
   test('detects the current international host', () => {
     expect(isCodeBuddyGlobalDomain('www.codebuddy.ai')).toBe(true);
     expect(isCodeBuddyGlobalDomain('https://www.codebuddy.ai/login')).toBe(true);
+    expect(isCodeBuddyGlobalDomain('www.workbuddy.ai')).toBe(false);
   });
 
   test('treats china and empty domains as not global', () => {
