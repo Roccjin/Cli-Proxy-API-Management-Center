@@ -13,6 +13,7 @@ import {
   isRuntimeOnlyAuthFile,
   normalizeProviderKey,
   supportsAuthFileManualRefresh,
+  supportsAuthFileModelsRefresh,
 } from '@/features/authFiles/constants';
 
 type DeleteAllOptions = {
@@ -49,6 +50,7 @@ export type UseAuthFilesDataResult = {
   statusUpdating: Record<string, boolean>;
   manualRefreshing: Record<string, boolean>;
   batchStatusUpdating: boolean;
+  batchModelsRefreshing: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
   loadFiles: (options?: LoadFilesOptions) => Promise<void>;
   handleUploadClick: () => void;
@@ -64,6 +66,7 @@ export type UseAuthFilesDataResult = {
   deselectAll: () => void;
   batchDownload: (names: string[]) => Promise<void>;
   batchSetStatus: (names: string[], enabled: boolean) => Promise<void>;
+  batchRefreshModels: (items: AuthFileItem[]) => Promise<void>;
   batchDelete: (names: string[]) => void;
 };
 
@@ -82,12 +85,14 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
   const [statusUpdating, setStatusUpdating] = useState<Record<string, boolean>>({});
   const [manualRefreshing, setManualRefreshing] = useState<Record<string, boolean>>({});
   const [batchStatusUpdating, setBatchStatusUpdating] = useState(false);
+  const [batchModelsRefreshing, setBatchModelsRefreshing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadPendingRef = useRef(false);
   const manualRefreshPendingRef = useRef<Set<string>>(new Set());
   const batchStatusPendingRef = useRef(false);
+  const batchModelsPendingRef = useRef(false);
   /** 列表请求代号：变更操作会使在途响应过期，防止旧轮询复活已删/已改文件。 */
   const loadRequestIdRef = useRef(0);
   const invalidateInFlightLoads = useCallback(() => {
@@ -696,6 +701,53 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
     [deselectAll, showNotification, t]
   );
 
+  const batchRefreshModels = useCallback(
+    async (items: AuthFileItem[]) => {
+      if (batchModelsPendingRef.current) return;
+
+      const targets = items.filter(
+        (file) =>
+          !isRuntimeOnlyAuthFile(file) &&
+          supportsAuthFileModelsRefresh(file.type ?? file.provider)
+      );
+      if (targets.length === 0) {
+        showNotification(t('auth_files.batch_models_refresh_none'), 'warning');
+        return;
+      }
+
+      batchModelsPendingRef.current = true;
+      setBatchModelsRefreshing(true);
+      try {
+        const result = await authFilesApi.refreshModelsBatch(
+          targets.map((file) => ({ name: file.name, authIndex: file.authIndex }))
+        );
+        onFilesMutatedRef.current?.(targets.map((file) => file.name));
+        if (result.failed.length === 0) {
+          showNotification(
+            t('auth_files.batch_models_refresh_success', { count: result.refreshed }),
+            'success'
+          );
+        } else {
+          showNotification(
+            t('auth_files.batch_models_refresh_partial', {
+              success: result.refreshed,
+              failed: result.failed.length,
+            }),
+            'warning'
+          );
+        }
+        deselectAll();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : t('common.unknown_error');
+        showNotification(t('auth_files.batch_models_refresh_failed', { message }), 'error');
+      } finally {
+        batchModelsPendingRef.current = false;
+        setBatchModelsRefreshing(false);
+      }
+    },
+    [deselectAll, showNotification, t]
+  );
+
   const batchDelete = useCallback(
     (names: string[]) => {
       const uniqueNames = Array.from(new Set(names));
@@ -750,6 +802,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
     statusUpdating,
     manualRefreshing,
     batchStatusUpdating,
+    batchModelsRefreshing,
     fileInputRef,
     loadFiles,
     handleUploadClick,
@@ -765,6 +818,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
     deselectAll,
     batchDownload,
     batchSetStatus,
+    batchRefreshModels,
     batchDelete,
   };
 }

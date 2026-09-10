@@ -16,6 +16,7 @@ import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import type { AuthFileItem } from '@/types';
 import { resolveAuthProvider } from '@/utils/quota';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
+import { resolveCodeBuddySite } from '@/utils/codebuddy';
 import { formatFileSize } from '@/utils/format';
 import {
   QUOTA_PROVIDER_TYPES,
@@ -97,6 +98,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const isManualRefreshing = manualRefreshing[file.name] === true;
   const typeColor = getTypeColor(providerKey, resolvedTheme);
   const typeLabel = getTypeLabel(t, providerKey);
+  const codeBuddySite = resolveCodeBuddySite(file);
   const providerIcon = getAuthFileIcon(providerKey, resolvedTheme);
   // 与 AI 提供商界面一致：Kimi 图标底座随主题切换颜色
   const useThemeSurfaceIcon = isThemeSurfaceIconProvider(providerKey);
@@ -201,6 +203,15 @@ export function AuthFileCard(props: AuthFileCardProps) {
             >
               {typeLabel}
             </span>
+            {codeBuddySite && (
+              <span className={styles.regionBadge}>
+                {t(
+                  codeBuddySite === 'global'
+                    ? 'auth_login.codebuddy_region_global'
+                    : 'auth_login.codebuddy_region_cn'
+                )}
+              </span>
+            )}
             <span className={`${styles.stateBadge} ${stateBadgeClass}`}>
               <span className={styles.stateDot} aria-hidden="true" />
               {stateLabel}

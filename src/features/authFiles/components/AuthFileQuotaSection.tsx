@@ -48,6 +48,8 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     if (quotaType === 'kimi') return state.kimiQuota[file.name] as QuotaCardState | undefined;
     if (quotaType === 'qoder') return state.qoderQuota[file.name] as QuotaCardState | undefined;
     if (quotaType === 'xai') return state.xaiQuota[file.name] as QuotaCardState | undefined;
+    if (quotaType === 'codebuddy')
+      return state.codebuddyQuota[file.name] as QuotaCardState | undefined;
     return assertNever(quotaType);
   });
 

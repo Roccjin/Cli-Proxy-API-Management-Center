@@ -14,7 +14,8 @@ export type BuiltInOAuthProvider =
   | 'antigravity'
   | 'kimi'
   | 'qoder'
-  | 'xai';
+  | 'xai'
+  | 'codebuddy';
 
 export interface OAuthStartResponse {
   url: string;
@@ -35,15 +36,29 @@ const normalizeProviderForManagementPath = (provider: string): string => {
   return key;
 };
 
+export const buildOAuthStartParams = (
+  provider: string,
+  extra?: Record<string, string>
+): Record<string, string | boolean> | undefined => {
+  const providerKey = normalizeProviderForManagementPath(provider);
+  const params: Record<string, string | boolean> = {};
+  if (extra) {
+    Object.entries(extra).forEach(([key, value]) => {
+      const trimmed = value.trim();
+      if (trimmed) params[key] = trimmed;
+    });
+  }
+  if (WEBUI_SUPPORTED.has(providerKey)) {
+    params.is_webui = true;
+  }
+  return Object.keys(params).length ? params : undefined;
+};
+
 export const oauthApi = {
-  startAuth: (provider: string) => {
+  startAuth: (provider: string, extra?: Record<string, string>) => {
     const providerKey = normalizeProviderForManagementPath(provider);
-    const params: Record<string, string | boolean> = {};
-    if (WEBUI_SUPPORTED.has(providerKey)) {
-      params.is_webui = true;
-    }
     return apiClient.get<OAuthStartResponse>(`/${providerKey}-auth-url`, {
-      params: Object.keys(params).length ? params : undefined,
+      params: buildOAuthStartParams(providerKey, extra),
     });
   },
 

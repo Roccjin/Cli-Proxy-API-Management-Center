@@ -31,6 +31,10 @@ export function isQoderFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'qoder';
 }
 
+export function isCodeBuddyFile(file: AuthFileItem): boolean {
+  return resolveAuthProvider(file) === 'codebuddy';
+}
+
 export function isXaiFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'xai';
 }

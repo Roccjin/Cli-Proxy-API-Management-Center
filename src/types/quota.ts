@@ -343,6 +343,39 @@ export interface QoderQuotaState {
   errorStatus?: number;
 }
 
+export interface CodeBuddyQuotaPackage {
+  name: string;
+  remain: number;
+  used: number;
+  size: number;
+  cycle_start?: string;
+  cycleStart?: string;
+  cycle_end?: string;
+  cycleEnd?: string;
+}
+
+export interface CodeBuddyQuotaSnapshot {
+  site?: 'global' | 'cn' | string;
+  total_remain?: number;
+  totalRemain?: number;
+  total_used?: number;
+  totalUsed?: number;
+  total_size?: number;
+  totalSize?: number;
+  pack_count?: number;
+  packCount?: number;
+  fetched_at?: string;
+  fetchedAt?: string;
+  packages?: CodeBuddyQuotaPackage[];
+}
+
+export interface CodeBuddyQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  usage?: CodeBuddyQuotaSnapshot | null;
+  error?: string;
+  errorStatus?: number;
+}
+
 // xAI/Grok API payload types
 export interface XaiBillingCent {
   val?: number | string;

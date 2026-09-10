@@ -56,6 +56,42 @@ type AuthFileBatchDeleteResult = {
   files: string[];
   failed: AuthFileBatchFailure[];
 };
+export type AuthFileModelEntry = {
+  id: string;
+  display_name?: string;
+  type?: string;
+  owned_by?: string;
+};
+export type AuthFileModelsRefreshTarget = {
+  name: string;
+  authIndex?: string | number | null;
+};
+type AuthFileModelsRefreshResponse = {
+  status?: string;
+  name?: string;
+  count?: number;
+  models?: unknown;
+};
+type AuthFileModelsRefreshBatchResponse = {
+  status?: string;
+  refreshed?: number;
+  files?: unknown;
+  failed?: unknown;
+};
+export type AuthFileModelsRefreshBatchResult = {
+  status: string;
+  refreshed: number;
+  files: string[];
+  failed: AuthFileBatchFailure[];
+};
+
+const MODELS_REFRESH_TIMEOUT_MS = 60_000;
+const MODELS_REFRESH_BATCH_TIMEOUT_MS = 120_000;
+
+const authIndexParam = (authIndex?: string | number | null): string => {
+  const value = String(authIndex ?? '').trim();
+  return value;
+};
 
 const getStatusCode = (err: unknown): number | undefined => {
   if (!err || typeof err !== 'object') return undefined;
@@ -525,15 +561,59 @@ export const authFilesApi = {
 
   // 获取认证凭证支持的模型
   async getModelsForAuthFile(
-    name: string
-  ): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
-    const data = await apiClient.get<Record<string, unknown>>(
-      `/auth-files/models?name=${encodeURIComponent(name)}`
-    );
+    name: string,
+    authIndex?: string | number | null
+  ): Promise<AuthFileModelEntry[]> {
+    const params = new URLSearchParams({ name });
+    const index = authIndexParam(authIndex);
+    if (index) params.set('auth_index', index);
+    const data = await apiClient.get<Record<string, unknown>>(`/auth-files/models?${params.toString()}`);
     const models = data.models ?? data['models'];
-    return Array.isArray(models)
-      ? (models as { id: string; display_name?: string; type?: string; owned_by?: string }[])
-      : [];
+    return Array.isArray(models) ? (models as AuthFileModelEntry[]) : [];
+  },
+
+  async refreshModelsForAuthFile(
+    name: string,
+    authIndex?: string | number | null
+  ): Promise<AuthFileModelEntry[]> {
+    const payload: Record<string, string> = { name };
+    const index = authIndexParam(authIndex);
+    if (index) payload.auth_index = index;
+    const data = await apiClient.post<AuthFileModelsRefreshResponse>(
+      '/auth-files/models/refresh',
+      payload,
+      { timeout: MODELS_REFRESH_TIMEOUT_MS }
+    );
+    const models = data.models;
+    return Array.isArray(models) ? (models as AuthFileModelEntry[]) : [];
+  },
+
+  async refreshModelsBatch(
+    files: AuthFileModelsRefreshTarget[]
+  ): Promise<AuthFileModelsRefreshBatchResult> {
+    const targets = files.reduce<{ name: string; auth_index?: string }[]>((acc, file) => {
+      const name = String(file.name ?? '').trim();
+      if (!name) return acc;
+      const authIndex = authIndexParam(file.authIndex);
+      acc.push(authIndex ? { name, auth_index: authIndex } : { name });
+      return acc;
+    }, []);
+    if (targets.length === 0) {
+      return { status: 'ok', refreshed: 0, files: [], failed: [] };
+    }
+    const payload = await apiClient.post<AuthFileModelsRefreshBatchResponse>(
+      '/auth-files/models/refresh-batch',
+      { files: targets },
+      { timeout: MODELS_REFRESH_BATCH_TIMEOUT_MS }
+    );
+    const failed = normalizeBatchFailures(payload?.failed);
+    const filesFromPayload = normalizeBatchFileNames(payload?.files);
+    return {
+      status: payload?.status ?? (failed.length > 0 ? 'partial' : 'ok'),
+      refreshed: payload?.refreshed ?? (failed.length === 0 ? targets.length : 0),
+      files: filesFromPayload,
+      failed,
+    };
   },
 
   // 获取指定 channel 的模型定义

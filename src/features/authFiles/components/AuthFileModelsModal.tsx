@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { IconRefreshCw } from '@/components/ui/icons';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
 import { isModelExcluded } from '@/features/authFiles/constants';
 import styles from './AuthFileModelsModal.module.scss';
@@ -11,26 +12,58 @@ export type AuthFileModelsModalProps = {
   fileName: string;
   fileType: string;
   loading: boolean;
+  refreshing: boolean;
+  canRefresh: boolean;
   error: 'unsupported' | null;
   models: AuthFileModelItem[];
   excluded: Record<string, string[]>;
   onClose: () => void;
+  onRefresh: () => void;
   onCopyText: (text: string) => void;
 };
 
 export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
   const { t } = useTranslation();
-  const { open, fileName, fileType, loading, error, models, excluded, onClose, onCopyText } = props;
+  const {
+    open,
+    fileName,
+    fileType,
+    loading,
+    refreshing,
+    canRefresh,
+    error,
+    models,
+    excluded,
+    onClose,
+    onRefresh,
+    onCopyText,
+  } = props;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
+      closeDisabled={refreshing}
       title={t('auth_files.models_title', { defaultValue: '支持的模型' }) + ` - ${fileName}`}
       footer={
-        <Button variant="secondary" onClick={onClose}>
-          {t('common.close')}
-        </Button>
+        <>
+          {canRefresh && (
+            <Button
+              variant="secondary"
+              className={styles.refreshButton}
+              onClick={onRefresh}
+              loading={refreshing}
+              disabled={loading || refreshing}
+              title={t('auth_files.models_refresh_hint')}
+            >
+              <IconRefreshCw size={14} />
+              {t('auth_files.models_refresh')}
+            </Button>
+          )}
+          <Button variant="secondary" onClick={onClose} disabled={refreshing}>
+            {t('common.close')}
+          </Button>
+        </>
       }
     >
       {loading ? (

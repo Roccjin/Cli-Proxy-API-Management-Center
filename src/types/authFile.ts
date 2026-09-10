@@ -16,6 +16,7 @@ export type AuthFileType =
   | 'qoder'
   | 'xai'
   | 'iflow'
+  | 'codebuddy'
   | 'vertex'
   | 'empty'
   | 'unknown';

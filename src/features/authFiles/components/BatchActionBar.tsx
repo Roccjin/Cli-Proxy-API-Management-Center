@@ -23,9 +23,11 @@ export type BatchActionBarProps = {
   onInvertPage: () => void;
   onDeselectAll: () => void;
   onDownload: () => void;
+  onRefreshModels: () => void;
   onEnable: () => void;
   onDisable: () => void;
   onDelete: () => void;
+  modelsRefreshDisabled: boolean;
 };
 
 /**
@@ -46,9 +48,11 @@ export function BatchActionBar(props: BatchActionBarProps) {
     onInvertPage,
     onDeselectAll,
     onDownload,
+    onRefreshModels,
     onEnable,
     onDisable,
     onDelete,
+    modelsRefreshDisabled,
   } = props;
   const { t } = useTranslation();
 
@@ -190,6 +194,15 @@ export function BatchActionBar(props: BatchActionBarProps) {
             disabled={disableControls || selectionCount === 0}
           >
             {t('auth_files.batch_download')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onRefreshModels}
+            disabled={modelsRefreshDisabled}
+            title={t('auth_files.batch_models_refresh_hint')}
+          >
+            {t('auth_files.batch_models_refresh')}
           </Button>
           <Button size="sm" onClick={onEnable} disabled={batchStatusDisabled}>
             {t('auth_files.batch_enable')}

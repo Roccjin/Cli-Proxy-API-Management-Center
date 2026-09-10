@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { IconPlug } from '@/components/ui/icons';
 import { useAuthStore, useNotificationStore, useThemeStore } from '@/stores';
 import { oauthApi, pluginsApi, type BuiltInOAuthProvider } from '@/services/api';
 import { vertexApi, type VertexImportResponse } from '@/services/api/vertex';
 import { copyToClipboard } from '@/utils/clipboard';
+import { normalizeCodeBuddySite, type CodeBuddySite } from '@/utils/codebuddy';
 import { getErrorMessage, isRecord } from '@/utils/helpers';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { getPluginTitle, resolvePluginAssetURL } from '@/features/plugins/pluginResources';
@@ -20,6 +22,7 @@ import iconAntigravity from '@/assets/icons/antigravity.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconQoder from '@/assets/icons/qoder.svg';
+import iconCodeBuddy from '@/assets/icons/codebuddy.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
@@ -35,6 +38,7 @@ interface ProviderState {
   callbackStatus?: 'success' | 'error';
   callbackError?: string;
   pat?: string;
+  region?: CodeBuddySite;
 }
 
 interface VertexImportResult {
@@ -104,6 +108,12 @@ const PROVIDERS: BuiltInOAuthProviderCard[] = [
     id: 'qoder',
     titleKey: 'auth_login.qoder_oauth_title',
     icon: iconQoder,
+  },
+  {
+    kind: 'builtin',
+    id: 'codebuddy',
+    titleKey: 'auth_login.codebuddy_oauth_title',
+    icon: iconCodeBuddy,
   },
   {
     kind: 'builtin',
@@ -446,7 +456,11 @@ export function OAuthPage() {
       callbackUrl: '',
     });
     try {
-      const res = await oauthApi.startAuth(provider);
+      const extra =
+        provider === 'codebuddy'
+          ? { region: normalizeCodeBuddySite(states[provider]?.region) }
+          : undefined;
+      const res = await oauthApi.startAuth(provider, extra);
       if (!res.state) {
         const message = t('auth_login.missing_state');
         updateProviderState(provider, {
@@ -600,6 +614,8 @@ export function OAuthPage() {
   const renderOAuthProviderCard = (provider: OAuthProviderCard, featured = false) => {
     const state = states[provider.id] || {};
     const isQoder = provider.kind === 'builtin' && provider.id === 'qoder';
+    const isCodeBuddy = provider.kind === 'builtin' && provider.id === 'codebuddy';
+    const codeBuddySite = normalizeCodeBuddySite(state.region);
     const showKimiSignUp = featured && provider.kind === 'builtin' && provider.id === 'kimi';
     const canSubmitCallback =
       !isQoder &&
@@ -656,8 +672,37 @@ export function OAuthPage() {
           <div className={featured ? styles.featuredHint : styles.cardHint}>
             {isQoder
               ? t('auth_login.qoder_pat_hint')
-              : getProviderText(provider, 'oauth_hint')}
+              : isCodeBuddy
+                ? t(
+                    codeBuddySite === 'cn'
+                      ? 'auth_login.codebuddy_oauth_hint_cn'
+                      : 'auth_login.codebuddy_oauth_hint'
+                  )
+                : getProviderText(provider, 'oauth_hint')}
           </div>
+          {isCodeBuddy && (
+            <div className={styles.regionField}>
+              <span className={styles.regionLabel}>{t('auth_login.codebuddy_region_label')}</span>
+              <Select
+                value={codeBuddySite}
+                options={[
+                  { value: 'global', label: t('auth_login.codebuddy_region_global') },
+                  { value: 'cn', label: t('auth_login.codebuddy_region_cn') },
+                ]}
+                onChange={(value) =>
+                  updateProviderState('codebuddy', {
+                    region: normalizeCodeBuddySite(value),
+                    status: undefined,
+                    error: undefined,
+                  })
+                }
+                disabled={state.polling}
+                fullWidth
+                size="sm"
+                ariaLabel={t('auth_login.codebuddy_region_label')}
+              />
+            </div>
+          )}
           {isQoder && (
             <Input
               label={t('auth_login.qoder_pat_label')}

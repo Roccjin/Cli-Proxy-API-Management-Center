@@ -8,6 +8,7 @@ import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconIflow from '@/assets/icons/iflow.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
+import iconCodeBuddy from '@/assets/icons/codebuddy.svg';
 import iconQoder from '@/assets/icons/qoder.svg';
 import iconQwen from '@/assets/icons/qwen.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
@@ -25,7 +26,14 @@ export type AuthFileModelItem = {
 };
 export type AuthFileIconAsset = string | { light: string; dark: string };
 
-export type QuotaProviderType = 'antigravity' | 'claude' | 'codex' | 'kimi' | 'qoder' | 'xai';
+export type QuotaProviderType =
+  | 'antigravity'
+  | 'claude'
+  | 'codex'
+  | 'kimi'
+  | 'qoder'
+  | 'xai'
+  | 'codebuddy';
 export type OAuthConfigLoadError = 'loading' | 'unsupported' | 'load' | null;
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
@@ -35,6 +43,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'kimi',
   'qoder',
   'xai',
+  'codebuddy',
 ]);
 
 export const OAUTH_PROVIDER_PRESETS = [
@@ -64,6 +73,7 @@ export const AUTH_FILE_MANUAL_REFRESH_PROVIDERS = new Set([
   'kimi',
   'xai',
 ]);
+export const AUTH_FILE_MODELS_REFRESH_PROVIDERS = new Set(['qoder', 'codebuddy']);
 
 // 标签类型颜色配置：权威版本在 @/utils/quota/constants.ts，此处仅转发
 export { TYPE_COLORS } from '@/utils/quota';
@@ -78,6 +88,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   iflow: iconIflow,
   kimi: { light: iconKimiDark, dark: iconKimiLight },
   qoder: iconQoder,
+  codebuddy: iconCodeBuddy,
   qwen: iconQwen,
   vertex: iconVertex,
 };
@@ -89,6 +100,9 @@ export const normalizeProviderKey = normalizeOAuthProviderKey;
 
 export const supportsAuthFileManualRefresh = (provider: unknown): boolean =>
   AUTH_FILE_MANUAL_REFRESH_PROVIDERS.has(normalizeProviderKey(String(provider ?? '')));
+
+export const supportsAuthFileModelsRefresh = (provider: unknown): boolean =>
+  AUTH_FILE_MODELS_REFRESH_PROVIDERS.has(normalizeProviderKey(String(provider ?? '')));
 
 export const buildOAuthProviderOptions = (values: Iterable<unknown>): string[] => {
   const extraProviders = new Set<string>();

@@ -129,6 +129,27 @@ export function collectQuotaRowInstants(
     return collectRows((quota as { rows?: WindowLike[] }).rows ?? [], 'row');
   }
 
+  if (provider === 'codebuddy') {
+    const packages = (
+      quota as {
+        usage?: { packages?: { name?: string; cycle_end?: string; cycleEnd?: string }[] };
+      }
+    ).usage?.packages ?? [];
+    return packages
+      .map((pkg, index): QuotaRowInstant | null => {
+        const raw = pkg.cycle_end ?? pkg.cycleEnd ?? '';
+        if (!raw.trim()) return null;
+        const atMs = Date.parse(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+        if (!Number.isFinite(atMs)) return null;
+        return {
+          rowId: pkg.name?.trim() || `package-${index}`,
+          atMs,
+          kind: 'window',
+        };
+      })
+      .filter((instant): instant is QuotaRowInstant => instant !== null);
+  }
+
   return [];
 }
 

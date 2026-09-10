@@ -144,6 +144,19 @@
   line-height: 1.65;
 }
 
+.regionField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.regionLabel {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .cardContent {
   display: flex;
   flex-direction: column;

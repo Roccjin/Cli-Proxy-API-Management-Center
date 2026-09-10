@@ -16,6 +16,7 @@ import {
   isProblemAuthFile,
   isRuntimeOnlyAuthFile,
   normalizeProviderKey,
+  supportsAuthFileModelsRefresh,
   type QuotaProviderType,
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
@@ -100,11 +101,14 @@ export function AuthFilesPage() {
   const {
     modelsModalOpen,
     modelsLoading,
+    modelsRefreshing,
     modelsList,
     modelsFileName,
     modelsFileType,
+    modelsCanRefresh,
     modelsError,
     showModels,
+    refreshModels,
     closeModelsModal,
     invalidateModels,
   } = useAuthFilesModels();
@@ -127,6 +131,7 @@ export function AuthFilesPage() {
     statusUpdating,
     manualRefreshing,
     batchStatusUpdating,
+    batchModelsRefreshing,
     fileInputRef,
     loadFiles,
     handleUploadClick,
@@ -142,6 +147,7 @@ export function AuthFilesPage() {
     deselectAll,
     batchDownload,
     batchSetStatus,
+    batchRefreshModels,
     batchDelete,
   } = useAuthFilesData({ onFilesMutated: invalidateDerivedCaches });
 
@@ -454,6 +460,16 @@ export function AuthFilesPage() {
     [sorted]
   );
   const selectedNames = useMemo(() => Array.from(selectedFiles), [selectedFiles]);
+  const selectedModelRefreshItems = useMemo(
+    () =>
+      files.filter(
+        (file) =>
+          selectedFiles.has(file.name) &&
+          !isRuntimeOnlyAuthFile(file) &&
+          supportsAuthFileModelsRefresh(file.type ?? file.provider)
+      ),
+    [files, selectedFiles]
+  );
   const selectedHasStatusUpdating = useMemo(
     () => selectedNames.some((name) => statusUpdating[name] === true),
     [selectedNames, statusUpdating]
@@ -775,10 +791,13 @@ export function AuthFilesPage() {
         fileName={modelsFileName}
         fileType={modelsFileType}
         loading={modelsLoading}
+        refreshing={modelsRefreshing}
+        canRefresh={modelsCanRefresh}
         error={modelsError}
         models={modelsList}
         excluded={excluded}
         onClose={closeModelsModal}
+        onRefresh={() => void refreshModels()}
         onCopyText={copyTextWithNotification}
       />
 
@@ -804,9 +823,13 @@ export function AuthFilesPage() {
         onInvertPage={() => invertVisibleSelection(pageItems)}
         onDeselectAll={deselectAll}
         onDownload={() => void batchDownload(selectedNames)}
+        onRefreshModels={() => void batchRefreshModels(selectedModelRefreshItems)}
         onEnable={() => batchSetStatus(selectedNames, true)}
         onDisable={() => batchSetStatus(selectedNames, false)}
         onDelete={() => batchDelete(selectedNames)}
+        modelsRefreshDisabled={
+          disableControls || batchModelsRefreshing || selectedModelRefreshItems.length === 0
+        }
       />
     </div>
   );
