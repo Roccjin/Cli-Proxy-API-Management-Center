@@ -42,6 +42,10 @@ export interface AuthFileItem {
   unavailable?: boolean;
   status?: string;
   statusMessage?: string;
+  /** 后端白名单下发的自动停用元数据（snake_case 原字段仍保留在条目上）。 */
+  disabledReason?: string;
+  disabledProviderCode?: string;
+  disabledAt?: string;
   lastRefresh?: string | number;
   modified?: number;
   priority?: number;

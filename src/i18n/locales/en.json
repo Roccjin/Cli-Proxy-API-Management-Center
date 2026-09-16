@@ -237,6 +237,8 @@
     "health_status_healthy": "Healthy",
     "health_status_warning": "Warning",
     "health_status_disabled": "Disabled",
+    "credits_exhausted_disabled": "{{provider}} credits are exhausted. The credential was disabled automatically.",
+    "credits_exhausted_reenable_hint": "Recharge credits, then re-enable it manually.",
     "download_button": "Download",
     "manual_refresh_button": "Refresh OAuth credential",
     "manual_refresh_requested": "Credential refresh requested for \"{{name}}\"",

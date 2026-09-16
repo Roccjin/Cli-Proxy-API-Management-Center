@@ -286,6 +286,16 @@ const normalizeAuthFileEntry = (entry: AuthFileEntry): AuthFileEntry => {
   // （sdk/cliproxy/auth/types.go AccountInfo），不能进入展示与搜索路径。
   const projectId = readTextField(entry, 'project_id');
   const modified = readDateField(entry);
+  const declaredDisabledReason =
+    typeof entry.disabledReason === 'string' ? entry.disabledReason.trim() : '';
+  const disabledReason = readTextField(entry, 'disabled_reason') || declaredDisabledReason;
+  const declaredDisabledProviderCode =
+    typeof entry.disabledProviderCode === 'string' ? entry.disabledProviderCode.trim() : '';
+  const disabledProviderCode =
+    readTextField(entry, 'disabled_provider_code') || declaredDisabledProviderCode;
+  const declaredDisabledAt =
+    typeof entry.disabledAt === 'string' ? entry.disabledAt.trim() : '';
+  const disabledAt = readTextField(entry, 'disabled_at') || declaredDisabledAt;
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
 
@@ -297,6 +307,9 @@ const normalizeAuthFileEntry = (entry: AuthFileEntry): AuthFileEntry => {
     successCount: normalizeUsageTotal(entry.success),
     failureCount: normalizeUsageTotal(entry.failed),
     ...(statusMessage ? { statusMessage } : {}),
+    ...(disabledReason ? { disabledReason } : {}),
+    ...(disabledProviderCode ? { disabledProviderCode } : {}),
+    ...(disabledAt ? { disabledAt } : {}),
     ...(modified > 0 ? { modified } : {}),
     priority,
     weight,

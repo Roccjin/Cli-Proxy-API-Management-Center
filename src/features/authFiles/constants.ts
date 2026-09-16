@@ -157,6 +157,43 @@ export const isProblemAuthFile = (file: AuthFileItem): boolean => {
   return file.unavailable === true || status === 'error' || hasAuthFileStatusWarning(file);
 };
 
+/** 归一化后的自动停用原因（snake_case 优先，camelCase 回落）。 */
+export const getAuthFileDisabledReason = (file: AuthFileItem): string => {
+  const raw = file['disabled_reason'] ?? file.disabledReason;
+  return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+};
+
+/** 是否为额度耗尽导致的自动停用（WorkBuddy/CodeBuddy 14018）。 */
+export const isCreditsExhaustedDisabled = (file: AuthFileItem): boolean => {
+  const status = typeof file.status === 'string' ? file.status.trim().toLowerCase() : '';
+  return (
+    (file.disabled === true || status === 'disabled') &&
+    getAuthFileDisabledReason(file) === 'credits_exhausted'
+  );
+};
+
+/**
+ * 启停切换用的完整状态转换：启用时清空全部停用元数据与过期状态字段，
+ * 停用时仅置 disabled/status，保留停用原因供卡片展示。
+ */
+export const withAuthFileDisabledState = (
+  file: AuthFileItem,
+  disabled: boolean
+): AuthFileItem => {
+  const next: AuthFileItem = { ...file, disabled, status: disabled ? 'disabled' : 'active' };
+  if (disabled) return next;
+  next.unavailable = false;
+  delete next.statusMessage;
+  delete next['status_message'];
+  delete next.disabledReason;
+  delete next['disabled_reason'];
+  delete next.disabledProviderCode;
+  delete next['disabled_provider_code'];
+  delete next.disabledAt;
+  delete next['disabled_at'];
+  return next;
+};
+
 export const getTypeLabel = (t: TFunction, type: string): string => {
   const providerKey = normalizeProviderKey(type);
   const key = `auth_files.filter_${providerKey}`;

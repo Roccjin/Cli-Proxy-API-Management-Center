@@ -14,6 +14,7 @@ import {
   normalizeProviderKey,
   supportsAuthFileManualRefresh,
   supportsAuthFileModelsRefresh,
+  withAuthFileDisabledState,
 } from '@/features/authFiles/constants';
 
 type DeleteAllOptions = {
@@ -532,18 +533,25 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
     async (item: AuthFileItem, enabled: boolean) => {
       const name = item.name;
       const nextDisabled = !enabled;
-      const previousDisabled = item.disabled === true;
+      const previousFile = item;
 
       setStatusUpdating((prev) => ({ ...prev, [name]: true }));
       invalidateInFlightLoads();
-      setFiles((prev) => prev.map((f) => (f.name === name ? { ...f, disabled: nextDisabled } : f)));
+      setFiles((prev) =>
+        prev.map((file) =>
+          file.name === name ? withAuthFileDisabledState(file, nextDisabled) : file
+        )
+      );
 
       try {
         const res = await authFilesApi.setStatus(name, nextDisabled);
         invalidateInFlightLoads();
         setFiles((prev) =>
-          prev.map((f) => (f.name === name ? { ...f, disabled: res.disabled } : f))
+          prev.map((file) =>
+            file.name === name ? withAuthFileDisabledState(file, res.disabled) : file
+          )
         );
+        await loadFiles({ background: true });
         showNotification(
           enabled
             ? t('auth_files.status_enabled_success', { name })
@@ -553,7 +561,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : '';
         setFiles((prev) =>
-          prev.map((f) => (f.name === name ? { ...f, disabled: previousDisabled } : f))
+          prev.map((file) => (file.name === name ? previousFile : file))
         );
         showNotification(`${t('notification.update_failed')}: ${errorMessage}`, 'error');
       } finally {
@@ -565,7 +573,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         });
       }
     },
-    [invalidateInFlightLoads, showNotification, t]
+    [invalidateInFlightLoads, loadFiles, showNotification, t]
   );
 
   const batchSetStatus = useCallback(
@@ -576,12 +584,12 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
       if (uniqueNames.length === 0) return;
       if (uniqueNames.some((name) => statusUpdating[name] === true)) return;
 
-      const originalDisabled = new Map(
+      const originalFiles = new Map<string, AuthFileItem>(
         files
           .filter((file) => uniqueNames.includes(file.name))
-          .map((file) => [file.name, file.disabled === true])
+          .map((file) => [file.name, file])
       );
-      const targetNames = new Set(originalDisabled.keys());
+      const targetNames = new Set(originalFiles.keys());
       const targetNameList = Array.from(targetNames);
       if (targetNameList.length === 0) return;
 
@@ -599,7 +607,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
       });
       setFiles((prev) =>
         prev.map((file) =>
-          targetNames.has(file.name) ? { ...file, disabled: nextDisabled } : file
+          targetNames.has(file.name) ? withAuthFileDisabledState(file, nextDisabled) : file
         )
       );
 
@@ -628,14 +636,18 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         setFiles((prev) =>
           prev.map((file) => {
             if (failedNames.has(file.name)) {
-              return { ...file, disabled: originalDisabled.get(file.name) === true };
+              return originalFiles.get(file.name) ?? file;
             }
             if (confirmedDisabled.has(file.name)) {
-              return { ...file, disabled: confirmedDisabled.get(file.name) };
+              return withAuthFileDisabledState(file, confirmedDisabled.get(file.name) === true);
             }
             return file;
           })
         );
+
+        if (successCount > 0) {
+          await loadFiles({ background: true });
+        }
 
         if (failCount === 0) {
           showNotification(
@@ -662,7 +674,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         });
       }
     },
-    [deselectAll, files, invalidateInFlightLoads, showNotification, statusUpdating, t]
+    [deselectAll, files, invalidateInFlightLoads, loadFiles, showNotification, statusUpdating, t]
   );
 
   const batchDownload = useCallback(

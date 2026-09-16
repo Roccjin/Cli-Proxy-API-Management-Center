@@ -105,4 +105,67 @@ describe('auth-files response normalization', () => {
     expect(result.files[0]?.account).toBe('sk-live-abcd');
     expect(result.files[0]?.accountType).toBeUndefined();
   });
+
+  test('maps trimmed snake_case disabled metadata to camelCase while keeping raw keys', () => {
+    const result = normalizeAuthFilesResponse(
+      responseWithRawFiles([
+        {
+          name: 'workbuddy.json',
+          disabled_reason: '  credits_exhausted  ',
+          disabled_provider_code: ' 14018 ',
+          disabled_at: ' 2026-09-16T00:00:00.000Z ',
+        },
+      ])
+    );
+
+    const file = result.files[0];
+    expect(file?.disabledReason).toBe('credits_exhausted');
+    expect(file?.disabledProviderCode).toBe('14018');
+    expect(file?.disabledAt).toBe('2026-09-16T00:00:00.000Z');
+    expect(file?.['disabled_reason']).toBe('  credits_exhausted  ');
+    expect(file?.['disabled_provider_code']).toBe(' 14018 ');
+    expect(file?.['disabled_at']).toBe(' 2026-09-16T00:00:00.000Z ');
+  });
+
+  test('falls back to declared camelCase disabled metadata', () => {
+    const result = normalizeAuthFilesResponse(
+      responseWithRawFiles([
+        {
+          name: 'codebuddy.json',
+          disabledReason: ' credits_exhausted ',
+          disabledProviderCode: ' 14018 ',
+          disabledAt: ' 2026-09-16T00:00:00.000Z ',
+        },
+      ])
+    );
+
+    expect(result.files[0]?.disabledReason).toBe('credits_exhausted');
+    expect(result.files[0]?.disabledProviderCode).toBe('14018');
+    expect(result.files[0]?.disabledAt).toBe('2026-09-16T00:00:00.000Z');
+  });
+
+  test('recovers disabled metadata from the lower-priority duplicate entry', () => {
+    const result = normalizeAuthFilesResponse(
+      responseWithRawFiles([
+        {
+          name: 'workbuddy.json',
+          source: 'file',
+          path: '/auths/workbuddy.json',
+          disabled_reason: ' ',
+        },
+        {
+          name: 'workbuddy.json',
+          source: 'memory',
+          disabled_reason: 'credits_exhausted',
+          disabled_provider_code: '14018',
+          disabled_at: '2026-09-16T00:00:00.000Z',
+        },
+      ])
+    );
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0]?.disabledReason).toBe('credits_exhausted');
+    expect(result.files[0]?.disabledProviderCode).toBe('14018');
+    expect(result.files[0]?.disabledAt).toBe('2026-09-16T00:00:00.000Z');
+  });
 });

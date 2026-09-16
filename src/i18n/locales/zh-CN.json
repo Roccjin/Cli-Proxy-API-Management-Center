@@ -237,6 +237,8 @@
     "health_status_healthy": "健康",
     "health_status_warning": "警告",
     "health_status_disabled": "已停用",
+    "credits_exhausted_disabled": "{{provider}} 额度已耗尽，凭证已自动停用。",
+    "credits_exhausted_reenable_hint": "充值后可手动重新启用。",
     "download_button": "下载",
     "manual_refresh_button": "刷新 OAuth 凭证",
     "manual_refresh_requested": "已提交 \"{{name}}\" 的凭证刷新请求",
