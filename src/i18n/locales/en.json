@@ -1305,7 +1305,7 @@
     "min_account_interval": "Account spacing",
     "min_account_interval_hint": "Minimum pause between two accounts in the same round.",
     "model": "Model",
-    "model_hint": "Cheap model used for the activity ping. Default hy3.",
+    "model_hint": "Model used for the activity ping. Default deepseek-v4.1-flash, matching the official CLI conversation.",
     "save": "Save settings",
     "saved": "Patrol settings saved",
     "save_failed": "Failed to save patrol settings",

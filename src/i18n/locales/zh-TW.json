@@ -1331,7 +1331,7 @@
     "min_account_interval": "帳號間隔",
     "min_account_interval_hint": "同一輪裡兩個帳號之間的最短間隔，降低風控。",
     "model": "模型",
-    "model_hint": "活躍巡檢使用的便宜模型，預設 hy3。",
+    "model_hint": "活躍巡檢使用的模型，預設 deepseek-v4.1-flash，與官方 CLI 對話一致。",
     "save": "儲存設定",
     "saved": "巡檢設定已儲存",
     "save_failed": "儲存巡檢設定失敗",

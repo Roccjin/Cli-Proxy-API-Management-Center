@@ -31,8 +31,8 @@ export const defaultActivitySettings = (): PatrolSettings => ({
   minAccountInterval: '45s',
   accountJitter: '30s',
   minRemain: 0,
-  requestTimeout: '90s',
-  model: 'hy3',
+  requestTimeout: '180s',
+  model: 'deepseek-v4.1-flash',
 });
 
 const readString = (source: Record<string, unknown>, ...keys: string[]): string => {
