@@ -26,6 +26,7 @@ import {
   IconSidebarProviders,
   IconSidebarQuickStart,
   IconSidebarQuota,
+  IconSidebarPatrol,
   IconSidebarStore,
   IconSidebarSystem,
   IconSidebarUsage,
@@ -59,6 +60,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   authFiles: <IconSidebarAuthFiles size={18} />,
   oauth: <IconSidebarOauth size={18} />,
   quota: <IconSidebarQuota size={18} />,
+  patrol: <IconSidebarPatrol size={18} />,
   usage: <IconSidebarUsage size={18} />,
   plugins: <IconSidebarPlugins size={18} />,
   pluginStore: <IconSidebarStore size={18} />,
@@ -645,6 +647,12 @@ export function MainLayout() {
           labelKey: 'nav.quota_management',
           metaKey: 'nav_meta.quota_management',
           icon: sidebarIcons.quota,
+        },
+        {
+          path: '/patrol',
+          labelKey: 'nav.patrol',
+          metaKey: 'nav_meta.patrol',
+          icon: sidebarIcons.patrol,
         },
         {
           path: '/usage',
