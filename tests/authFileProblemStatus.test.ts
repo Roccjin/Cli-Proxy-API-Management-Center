@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   isCreditsExhaustedDisabled,
+  isCreditsReserveDisabled,
   isProblemAuthFile,
   withAuthFileDisabledState,
 } from '../src/features/authFiles/constants';
@@ -72,6 +73,15 @@ describe('credits-exhausted disabled state', () => {
     expect(isCreditsExhaustedDisabled(authFile({ disabled: true }))).toBe(false);
     expect(
       isCreditsExhaustedDisabled(authFile({ disabled: true, disabledReason: 'manual' }))
+    ).toBe(false);
+  });
+
+  test('recognizes a credit-floor hold separately from exhaustion', () => {
+    expect(
+      isCreditsReserveDisabled(authFile({ disabled: true, disabledReason: 'credits_reserve' }))
+    ).toBe(true);
+    expect(
+      isCreditsExhaustedDisabled(authFile({ disabled: true, disabledReason: 'credits_reserve' }))
     ).toBe(false);
   });
 

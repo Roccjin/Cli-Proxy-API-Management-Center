@@ -27,6 +27,7 @@ import {
   getThemeSurfaceIconBackground,
   hasAuthFileStatusWarning,
   isCreditsExhaustedDisabled,
+  isCreditsReserveDisabled,
   getTypeColor,
   getTypeLabel,
   isRuntimeOnlyAuthFile,
@@ -120,12 +121,16 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const rawStatusMessage = getAuthFileStatusMessage(file);
   const hasStatusWarning = hasAuthFileStatusWarning(file);
   const creditsExhaustedDisabled = isCreditsExhaustedDisabled(file);
+  const creditsReserveDisabled = isCreditsReserveDisabled(file);
   const displayedStatusMessage = creditsExhaustedDisabled
     ? `${t('auth_files.credits_exhausted_disabled', { provider: typeLabel })} ${t(
         'auth_files.credits_exhausted_reenable_hint'
       )}`
-    : rawStatusMessage;
-  const showStatusMessage = creditsExhaustedDisabled || (rawStatusMessage && hasStatusWarning);
+    : creditsReserveDisabled
+      ? t('auth_files.credits_reserve_disabled', { provider: typeLabel })
+      : rawStatusMessage;
+  const showStatusMessage =
+    creditsExhaustedDisabled || creditsReserveDisabled || (rawStatusMessage && hasStatusWarning);
 
   const priorityValue = Number.isSafeInteger(file.priority) ? file.priority : undefined;
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;

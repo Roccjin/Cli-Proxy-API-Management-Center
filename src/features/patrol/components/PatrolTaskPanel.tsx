@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
   isValidGoDuration,
+  isValidMinRemain,
   settingsDirty,
   summarizePatrolTask,
   type PatrolTaskSummary,
@@ -99,15 +100,18 @@ function TaskRow({
 }) {
   const { t } = useTranslation();
   const modelField = withModel(kind);
-  const dirty = settingsDirty(draft, saved, modelField);
+  const dirty = settingsDirty(draft, saved, modelField, kind === 'credits');
   const intervalInvalid = !isValidGoDuration(draft.interval);
   const accountIntervalInvalid = !isValidGoDuration(draft.minAccountInterval);
+  const minRemainInvalid = kind === 'credits' && !isValidMinRemain(draft.minRemain);
   const modelInvalid = modelField && !draft.model.trim();
-  const invalid = intervalInvalid || accountIntervalInvalid || modelInvalid;
+  const invalid = intervalInvalid || accountIntervalInvalid || modelInvalid || minRemainInvalid;
   const invalidTitle =
     intervalInvalid || accountIntervalInvalid
       ? t('patrol.invalid_duration')
-      : t(kind === 'webDaily' ? 'patrol.invalid_web_daily_model' : 'patrol.invalid_model');
+      : minRemainInvalid
+        ? t('patrol.invalid_min_remain')
+        : t(kind === 'webDaily' ? 'patrol.invalid_web_daily_model' : 'patrol.invalid_model');
   const title =
     kind === 'credits'
       ? t('patrol.credits_title')
@@ -178,7 +182,24 @@ function TaskRow({
           onChange={(event) => onChange(kind, { minAccountInterval: event.target.value })}
         />
         <div className={styles.taskModel}>
-          {modelField ? (
+          {kind === 'credits' ? (
+            <Input
+              label={t('patrol.min_remain')}
+              title={t('patrol.min_remain_hint')}
+              type="number"
+              min={0}
+              step="any"
+              inputMode="decimal"
+              value={Number.isFinite(draft.minRemain) ? String(draft.minRemain) : ''}
+              disabled={disableControls}
+              className={minRemainInvalid ? styles.inputInvalid : undefined}
+              aria-invalid={minRemainInvalid || undefined}
+              onChange={(event) => {
+                const raw = event.target.value.trim();
+                onChange(kind, { minRemain: raw === '' ? Number.NaN : Number(raw) });
+              }}
+            />
+          ) : (
             <Input
               label={t('patrol.model')}
               title={t(kind === 'webDaily' ? 'patrol.web_daily_model_hint' : 'patrol.model_hint')}
@@ -189,8 +210,6 @@ function TaskRow({
               aria-invalid={modelInvalid || undefined}
               onChange={(event) => onChange(kind, { model: event.target.value })}
             />
-          ) : (
-            <div className={styles.modelPlaceholder}>{t('patrol.model_not_needed')}</div>
           )}
         </div>
         <div className={`${styles.taskActions} ${dirty ? '' : styles.actionsIdle}`}>

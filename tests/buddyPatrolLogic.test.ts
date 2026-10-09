@@ -3,7 +3,9 @@ import {
   applicablePatrolKinds,
   defaultCreditsSettings,
   filterPatrolAccounts,
+  isCreditsPatrolTarget,
   isValidGoDuration,
+  isValidMinRemain,
   mergeDraftAfterReload,
   normalizeBuddyPatrol,
   patrolResultTone,
@@ -80,6 +82,19 @@ describe('toPatrolPatchBody', () => {
     ).toEqual({
       'web-daily': { enabled: false, interval: '12h', model: 'hy3' },
     });
+    expect(toPatrolPatchBody('credits', { interval: '12h', minRemain: 10 })).toEqual({
+      credits: { interval: '12h', 'min-remain': 10 },
+    });
+  });
+});
+
+describe('isValidMinRemain', () => {
+  test('accepts zero and positive numbers', () => {
+    expect(isValidMinRemain(0)).toBe(true);
+    expect(isValidMinRemain(1)).toBe(true);
+    expect(isValidMinRemain(10.5)).toBe(true);
+    expect(isValidMinRemain(-1)).toBe(false);
+    expect(isValidMinRemain(Number.NaN)).toBe(false);
   });
 });
 
@@ -88,6 +103,8 @@ describe('settingsDirty', () => {
     const saved = normalizeBuddyPatrol({}).credits;
     expect(settingsDirty({ ...saved, model: 'hy3' }, saved, false)).toBe(false);
     expect(settingsDirty({ ...saved, interval: '6h' }, saved, false)).toBe(true);
+    expect(settingsDirty({ ...saved, minRemain: 10 }, saved, false)).toBe(false);
+    expect(settingsDirty({ ...saved, minRemain: 10 }, saved, false, true)).toBe(true);
   });
 });
 
@@ -144,6 +161,12 @@ describe('patrol account filters', () => {
         account({ disabled: true, disabledReason: 'credits_exhausted', activityEligible: true })
       )
     ).toEqual(['credits', 'activity']);
+    expect(
+      isCreditsPatrolTarget(account({ disabled: true, disabledReason: 'credits_reserve' }))
+    ).toBe(true);
+    expect(isCreditsPatrolTarget(account({ disabled: true, disabledReason: 'manual' }))).toBe(
+      false
+    );
     expect(applicablePatrolKinds(account({ webDailyEligible: true }))).toEqual(['webDaily']);
   });
 

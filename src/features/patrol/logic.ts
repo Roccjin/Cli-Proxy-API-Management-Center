@@ -14,6 +14,9 @@ export const GO_DURATION_PATTERN = /^(?:\d+(?:\.\d+)?(?:ns|us|µs|μs|ms|s|m|h))
 export const isValidGoDuration = (value: string): boolean =>
   GO_DURATION_PATTERN.test(value.trim());
 
+/** 最低剩余积分：0 表示关闭提前停用，负数和空值无效。 */
+export const isValidMinRemain = (value: number): boolean => Number.isFinite(value) && value >= 0;
+
 export const defaultCreditsSettings = (): PatrolSettings => ({
   enabled: true,
   interval: '12h',
@@ -166,14 +169,24 @@ export const toPatrolPatchBody = (
   if (patch.minAccountInterval !== undefined) {
     body['min-account-interval'] = patch.minAccountInterval.trim();
   }
+  if (patch.minRemain !== undefined) body['min-remain'] = patch.minRemain;
   if (patch.model !== undefined) body.model = patch.model.trim();
   return { [patrolPatchKey(kind)]: body };
 };
 
-export const settingsDirty = (draft: PatrolSettings, saved: PatrolSettings, withModel: boolean) =>
+const sameMinRemain = (left: number, right: number): boolean =>
+  Number.isFinite(left) && Number.isFinite(right) ? left === right : !Number.isFinite(left) && !Number.isFinite(right);
+
+export const settingsDirty = (
+  draft: PatrolSettings,
+  saved: PatrolSettings,
+  withModel: boolean,
+  withMinRemain = false
+) =>
   draft.interval.trim() !== saved.interval.trim() ||
   draft.minAccountInterval.trim() !== saved.minAccountInterval.trim() ||
-  (withModel && draft.model.trim() !== saved.model.trim());
+  (withModel && draft.model.trim() !== saved.model.trim()) ||
+  (withMinRemain && !sameMinRemain(draft.minRemain, saved.minRemain));
 
 export const patrolResultTone = (
   result: string | undefined
@@ -231,7 +244,9 @@ export const PATROL_PAGE_SIZES = [20, 50, 100] as const;
 export const DEFAULT_PATROL_PAGE_SIZE = 20;
 
 export const isCreditsPatrolTarget = (account: PatrolAccount): boolean =>
-  account.disabled && account.disabledReason === 'credits_exhausted';
+  account.disabled &&
+  (account.disabledReason === 'credits_exhausted' ||
+    account.disabledReason === 'credits_reserve');
 
 export const patrolLastResult = (
   account: PatrolAccount,

@@ -14,6 +14,7 @@ import {
   defaultCreditsSettings,
   defaultWebDailySettings,
   isValidGoDuration,
+  isValidMinRemain,
   mergeDraftAfterReload,
   toPatrolPatchBody,
 } from './logic';
@@ -129,6 +130,10 @@ export function PatrolPage() {
         showNotification(t('patrol.invalid_duration'), 'error');
         return;
       }
+      if (kind === 'credits' && !isValidMinRemain(draft.minRemain)) {
+        showNotification(t('patrol.invalid_min_remain'), 'error');
+        return;
+      }
       if (kind !== 'credits' && !draft.model.trim()) {
         showNotification(
           t(kind === 'webDaily' ? 'patrol.invalid_web_daily_model' : 'patrol.invalid_model'),
@@ -137,13 +142,14 @@ export function PatrolPage() {
         return;
       }
       const savedFields: (keyof PatrolSettings)[] = ['interval', 'minAccountInterval'];
+      if (kind === 'credits') savedFields.push('minRemain');
       if (kind !== 'credits') savedFields.push('model');
       void patchAndReload(
         kind,
         toPatrolPatchBody(kind, {
           interval: draft.interval,
           minAccountInterval: draft.minAccountInterval,
-          ...(kind === 'credits' ? {} : { model: draft.model }),
+          ...(kind === 'credits' ? { minRemain: draft.minRemain } : { model: draft.model }),
         }),
         savedFields
       );

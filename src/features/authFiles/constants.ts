@@ -172,6 +172,15 @@ export const isCreditsExhaustedDisabled = (file: AuthFileItem): boolean => {
   );
 };
 
+/** 是否因总额度低于最低剩余而被暂停接请求。 */
+export const isCreditsReserveDisabled = (file: AuthFileItem): boolean => {
+  const status = typeof file.status === 'string' ? file.status.trim().toLowerCase() : '';
+  return (
+    (file.disabled === true || status === 'disabled') &&
+    getAuthFileDisabledReason(file) === 'credits_reserve'
+  );
+};
+
 /**
  * 启停切换用的完整状态转换：启用时清空全部停用元数据与过期状态字段，
  * 停用时仅置 disabled/status，保留停用原因供卡片展示。

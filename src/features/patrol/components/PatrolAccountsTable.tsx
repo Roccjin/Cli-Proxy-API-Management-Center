@@ -229,6 +229,7 @@ export function PatrolAccountsTable({
             {pageItems.map((account) => {
               const icon = getAuthFileIcon(account.provider, resolvedTheme);
               const exhausted = account.disabledReason === 'credits_exhausted';
+              const reserve = account.disabledReason === 'credits_reserve';
               return (
                 <TableRow key={account.id || account.name}>
                   <TableCell>
@@ -246,10 +247,14 @@ export function PatrolAccountsTable({
                   </TableCell>
                   <TableCell>
                     {account.disabled ? (
-                      <span className={`${styles.pill} ${exhausted ? styles.warn : styles.bad}`}>
+                      <span
+                        className={`${styles.pill} ${exhausted || reserve ? styles.warn : styles.bad}`}
+                      >
                         {exhausted
                           ? t('patrol.status_credits_exhausted')
-                          : t('patrol.status_disabled')}
+                          : reserve
+                            ? t('patrol.status_credits_reserve')
+                            : t('patrol.status_disabled')}
                       </span>
                     ) : (
                       <span className={`${styles.pill} ${styles.ok}`}>

@@ -44,5 +44,6 @@ export type PatrolSettingsPatch = {
   enabled?: boolean;
   interval?: string;
   minAccountInterval?: string;
+  minRemain?: number;
   model?: string;
 };
