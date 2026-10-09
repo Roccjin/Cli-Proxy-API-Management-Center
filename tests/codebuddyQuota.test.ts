@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { readCodeBuddyQuotaSnapshot, readCodeBuddyQuotaView } from '@/features/quota/providers/codebuddy/data';
+import {
+  groupBuddyCreditPackages,
+  isBuddyPackageListCollapsible,
+  sortBuddyPackagesByExpiry,
+  type BuddyCreditPackage,
+} from '@/features/quota/providers/buddy/credits';
 import { collectQuotaRowInstants } from '@/features/quota/resetSchedule';
 
 describe('readCodeBuddyQuotaSnapshot', () => {
@@ -61,5 +67,74 @@ describe('collectQuotaRowInstants for codebuddy', () => {
     expect(instants).toHaveLength(1);
     expect(instants[0]?.rowId).toBe('Intl Pack');
     expect(instants[0]?.atMs).toBe(Date.parse('2026-10-01T00:00:00Z'));
+  });
+});
+
+const credit = (
+  name: string,
+  remain: number,
+  cycleEnd: string | null
+): BuddyCreditPackage => ({
+  name,
+  remain,
+  used: 0,
+  size: remain,
+  remainingPercent: remain > 0 ? 100 : null,
+  cycleEnd,
+});
+
+describe('buddy credit grouping', () => {
+  test('merges same names and sorts groups by earliest expiry', () => {
+    const groups = groupBuddyCreditPackages([
+      credit('Free Plan Subscription', 100, '2026-10-31 23:59:00'),
+      credit('Bonus Pack', 30, '2026-10-22 02:26:00'),
+      credit('Bonus Pack', 30, '2026-10-23 00:00:00'),
+      credit('Bonus Pack', 30, '2026-11-09 12:29:00'),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({
+      name: 'Bonus Pack',
+      count: 3,
+      remain: 90,
+      size: 90,
+      earliestEnd: '2026-10-22 02:26:00',
+      latestEnd: '2026-11-09 12:29:00',
+    });
+    expect(groups[1]).toMatchObject({ name: 'Free Plan Subscription', count: 1 });
+  });
+
+  test('does not merge packages with an empty name', () => {
+    const groups = groupBuddyCreditPackages([
+      credit('Bonus Pack', 10, null),
+      credit('  ', 5, '2026-10-01 00:00:00'),
+      credit('', 7, '2026-10-02 00:00:00'),
+    ]);
+    const unnamed = groups.filter((group) => group.name === '');
+    expect(unnamed.map((group) => group.fallbackIndex)).toEqual([2, 3]);
+  });
+
+  test('sorts a group with no parseable expiry last', () => {
+    const groups = groupBuddyCreditPackages([
+      credit('Later', 1, 'not-a-date'),
+      credit('Soon', 1, '2026-10-01 00:00:00'),
+    ]);
+    expect(groups.map((group) => group.name)).toEqual(['Soon', 'Later']);
+  });
+
+  test('sortBuddyPackagesByExpiry keeps equal expiries in input order', () => {
+    const sorted = sortBuddyPackagesByExpiry([
+      credit('first', 1, '2026-10-22 00:00:00'),
+      credit('second', 1, '2026-10-22 00:00:00'),
+      credit('earlier', 1, '2026-10-21 00:00:00'),
+    ]);
+    expect(sorted.map((pkg) => pkg.name)).toEqual(['earlier', 'first', 'second']);
+    expect(sorted.map((pkg) => pkg.originalIndex)).toEqual([2, 0, 1]);
+  });
+
+  test('isBuddyPackageListCollapsible', () => {
+    expect(isBuddyPackageListCollapsible(3, 3)).toBe(false);
+    expect(isBuddyPackageListCollapsible(4, 4)).toBe(true);
+    expect(isBuddyPackageListCollapsible(2, 1)).toBe(true);
   });
 });

@@ -546,6 +546,12 @@
     "expires_at": "Истекает {{time}}",
     "unit_default": "credits"
   },
+  "buddy_quota": {
+    "group_label": "{{name}} ×{{count}}",
+    "expires_range": "Истекают {{from}} – {{to}}",
+    "show_all": "Показать все пакеты ({{count}})",
+    "collapse": "Свернуть"
+  },
   "xai_quota": {
     "title": "Квота Grok",
     "empty_title": "Файлы авторизации xAI/Grok отсутствуют",

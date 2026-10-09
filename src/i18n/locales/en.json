@@ -559,6 +559,12 @@
     "expires_at": "Expires {{time}}",
     "unit_default": "credits"
   },
+  "buddy_quota": {
+    "group_label": "{{name}} ×{{count}}",
+    "expires_range": "Expires {{from}} – {{to}}",
+    "show_all": "Show all {{count}} packs",
+    "collapse": "Collapse"
+  },
   "xai_quota": {
     "title": "Grok Quota",
     "empty_title": "No xAI/Grok Auth Files",

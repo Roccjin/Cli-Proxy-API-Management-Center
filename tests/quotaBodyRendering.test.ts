@@ -13,12 +13,20 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
+import { CodeBuddyQuotaBody } from '@/features/quota/providers/codebuddy/CodeBuddyQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
 import { QoderQuotaBody } from '@/features/quota/providers/qoder/QoderQuotaBody';
+import { WorkBuddyQuotaBody } from '@/features/quota/providers/workbuddy/WorkBuddyQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import { formatInstantShort } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
-import type { ClaudeQuotaState, CodexQuotaState, KimiQuotaState, QoderQuotaState } from '@/types';
+import type {
+  ClaudeQuotaState,
+  CodeBuddyQuotaState,
+  CodexQuotaState,
+  KimiQuotaState,
+  QoderQuotaState,
+} from '@/types';
 
 const classes = bindQuotaClasses(
   Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
@@ -210,5 +218,67 @@ describe('QoderQuotaBody', () => {
 
     expect(markup).toContain('quotaWarningMessage');
     expect(markup).toContain('role="alert"');
+  });
+});
+
+const buddyPackages = (count: number, name: string) =>
+  Array.from({ length: count }, (_, index) => ({
+    name,
+    remain: 30,
+    used: 0,
+    size: 30,
+    cycle_end: new Date(Date.UTC(2026, 9, 22 + index, 2, 26)).toISOString(),
+  }));
+
+const buddyQuota = (
+  packages: { name: string; remain: number; used: number; size: number; cycle_end?: string }[]
+): CodeBuddyQuotaState => ({
+  status: 'success',
+  usage: {
+    site: 'global',
+    total_remain: 610,
+    total_size: 610,
+    pack_count: packages.length,
+    packages,
+  },
+});
+
+describe('CodeBuddyQuotaBody', () => {
+  test('collapses repeated packs behind a toggle', () => {
+    const quota = buddyQuota([
+      { name: 'Free Plan Subscription', remain: 100, used: 0, size: 100 },
+      ...buddyPackages(18, 'Bonus Pack'),
+    ]);
+    const markup = renderToStaticMarkup(createElement(CodeBuddyQuotaBody, { quota, classes }));
+
+    expect(markup).toContain('Bonus Pack ×18');
+    expect(markup).toContain('Free Plan Subscription');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('Show all 19 packs');
+    expect(markup.match(/class="quotaBar"/g)).toHaveLength(3);
+  });
+
+  test('renders a short distinct list without a toggle', () => {
+    const quota = buddyQuota([
+      { name: 'Alpha', remain: 10, used: 0, size: 10, cycle_end: '2026-10-01 00:00:00' },
+      { name: 'Beta', remain: 20, used: 0, size: 20, cycle_end: '2026-10-02 00:00:00' },
+    ]);
+    const markup = renderToStaticMarkup(createElement(CodeBuddyQuotaBody, { quota, classes }));
+
+    expect(markup).not.toContain('aria-expanded');
+    expect(markup.match(/class="quotaBar"/g)).toHaveLength(3);
+  });
+});
+
+describe('WorkBuddyQuotaBody', () => {
+  test('collapses repeated packs the same way', () => {
+    const quota = buddyQuota([
+      { name: 'Free Plan Subscription', remain: 100, used: 0, size: 100 },
+      ...buddyPackages(18, 'Bonus Pack'),
+    ]);
+    const markup = renderToStaticMarkup(createElement(WorkBuddyQuotaBody, { quota, classes }));
+
+    expect(markup).toContain('Bonus Pack ×18');
+    expect(markup).toContain('aria-expanded="false"');
   });
 });

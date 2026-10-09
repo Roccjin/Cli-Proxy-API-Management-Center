@@ -559,6 +559,12 @@
     "expires_at": "{{time}} 到期",
     "unit_default": "credits"
   },
+  "buddy_quota": {
+    "group_label": "{{name}} ×{{count}}",
+    "expires_range": "{{from}} – {{to}} 到期",
+    "show_all": "展開全部 {{count}} 個積分包",
+    "collapse": "收合明細"
+  },
   "xai_quota": {
     "title": "Grok 配額",
     "empty_title": "暫無 xAI/Grok 驗證",

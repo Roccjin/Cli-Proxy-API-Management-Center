@@ -141,6 +141,43 @@ button.quotaMessageAction {
   color: var(--text-secondary);
 }
 
+.quotaToggle {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: $radius-sm;
+  background: none;
+  cursor: pointer;
+  font-family: $font-mono;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  transition: color $transition-fast;
+
+  &:hover:not(:disabled) {
+    color: var(--primary-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.quotaScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  margin-right: -6px;
+  scrollbar-width: thin;
+}
+
 /* ---------- 进度条（QuotaProgressBar 注入，Meter 风 6px 轨道） ---------- */
 
 .quotaBar {
