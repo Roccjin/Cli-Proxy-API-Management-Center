@@ -2,6 +2,7 @@ import { isRecord } from '@/utils/helpers';
 import type {
   BuddyPatrolState,
   PatrolAccount,
+  PatrolKind,
   PatrolLastResult,
   PatrolSettings,
   PatrolSettingsPatch,
@@ -25,6 +26,17 @@ export const defaultCreditsSettings = (): PatrolSettings => ({
 });
 
 export const defaultActivitySettings = (): PatrolSettings => ({
+  enabled: true,
+  interval: '24h',
+  startupJitter: '10m',
+  minAccountInterval: '45s',
+  accountJitter: '30s',
+  minRemain: 0,
+  requestTimeout: '180s',
+  model: 'deepseek-v4.1-flash',
+});
+
+export const defaultWebDailySettings = (): PatrolSettings => ({
   enabled: true,
   interval: '24h',
   startupJitter: '10m',
@@ -117,8 +129,10 @@ const normalizeAccount = (raw: unknown): PatrolAccount | null => {
     disabledReason: readString(raw, 'disabled_reason', 'disabledReason'),
     region: readString(raw, 'region') || 'cn',
     activityEligible: readBoolean(raw, 'activity_eligible', 'activityEligible') === true,
+    webDailyEligible: readBoolean(raw, 'web_daily_eligible', 'webDailyEligible') === true,
     credits: normalizeLastResult(raw.credits),
     activity: normalizeLastResult(raw.activity),
+    webDaily: normalizeLastResult(raw.web_daily ?? raw.webDaily),
   };
 };
 
@@ -129,14 +143,21 @@ export const normalizeBuddyPatrol = (payload: unknown): BuddyPatrolState => {
     homeMode: readBoolean(source, 'home-mode', 'homeMode') === true,
     credits: normalizeSettings(source.credits, defaultCreditsSettings(), false),
     activity: normalizeSettings(source.activity, defaultActivitySettings(), true),
+    webDaily: normalizeSettings(
+      source['web-daily'] ?? source.webDaily,
+      defaultWebDailySettings(),
+      true
+    ),
     accounts: accountsRaw
       .map(normalizeAccount)
       .filter((account): account is PatrolAccount => account !== null),
   };
 };
 
+const patrolPatchKey = (kind: PatrolKind): string => (kind === 'webDaily' ? 'web-daily' : kind);
+
 export const toPatrolPatchBody = (
-  kind: 'credits' | 'activity',
+  kind: PatrolKind,
   patch: PatrolSettingsPatch
 ): Record<string, Record<string, unknown>> => {
   const body: Record<string, unknown> = {};
@@ -146,7 +167,7 @@ export const toPatrolPatchBody = (
     body['min-account-interval'] = patch.minAccountInterval.trim();
   }
   if (patch.model !== undefined) body.model = patch.model.trim();
-  return { [kind]: body };
+  return { [patrolPatchKey(kind)]: body };
 };
 
 export const settingsDirty = (draft: PatrolSettings, saved: PatrolSettings, withModel: boolean) =>

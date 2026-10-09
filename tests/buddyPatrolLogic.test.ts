@@ -29,6 +29,7 @@ describe('normalizeBuddyPatrol', () => {
       'home-mode': false,
       credits: { enabled: false, interval: '6h', 'min-account-interval': '30s' },
       activity: { enabled: true, interval: '12h', model: 'hy3' },
+      'web-daily': { enabled: false, interval: '36h', model: 'hy3' },
       accounts: [
         {
           id: 'a',
@@ -39,6 +40,7 @@ describe('normalizeBuddyPatrol', () => {
           disabled_reason: 'credits_exhausted',
           region: 'global',
           activity_eligible: true,
+          web_daily_eligible: false,
           credits: { at: '2026-09-21T01:00:00Z', result: 'still_empty', remain: 0 },
           activity: { result: 'ok' },
         },
@@ -50,9 +52,13 @@ describe('normalizeBuddyPatrol', () => {
     expect(state.credits.interval).toBe('6h');
     expect(state.credits.minAccountInterval).toBe('30s');
     expect(state.activity.model).toBe('hy3');
+    expect(state.webDaily.enabled).toBe(false);
+    expect(state.webDaily.interval).toBe('36h');
+    expect(state.webDaily.model).toBe('hy3');
     expect(state.accounts).toHaveLength(1);
     expect(state.accounts[0]?.credits?.remain).toBe(0);
     expect(state.accounts[0]?.activity?.result).toBe('ok');
+    expect(state.accounts[0]?.webDailyEligible).toBe(false);
   });
 });
 
@@ -62,6 +68,11 @@ describe('toPatrolPatchBody', () => {
       toPatrolPatchBody('activity', { enabled: true, interval: '24h', model: 'hy3' })
     ).toEqual({
       activity: { enabled: true, interval: '24h', model: 'hy3' },
+    });
+    expect(
+      toPatrolPatchBody('webDaily', { enabled: false, interval: '12h', model: 'hy3' })
+    ).toEqual({
+      'web-daily': { enabled: false, interval: '12h', model: 'hy3' },
     });
   });
 });

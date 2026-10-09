@@ -24,16 +24,21 @@ export type PatrolAccount = {
   disabledReason: string;
   region: string;
   activityEligible: boolean;
+  webDailyEligible: boolean;
   credits?: PatrolLastResult;
   activity?: PatrolLastResult;
+  webDaily?: PatrolLastResult;
 };
 
 export type BuddyPatrolState = {
   homeMode: boolean;
   credits: PatrolSettings;
   activity: PatrolSettings;
+  webDaily: PatrolSettings;
   accounts: PatrolAccount[];
 };
+
+export type PatrolKind = 'credits' | 'activity' | 'webDaily';
 
 export type PatrolSettingsPatch = {
   enabled?: boolean;

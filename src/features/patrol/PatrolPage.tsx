@@ -32,12 +32,19 @@ import { parseTimestamp } from '@/utils/timestamp';
 import {
   defaultActivitySettings,
   defaultCreditsSettings,
+  defaultWebDailySettings,
   isValidGoDuration,
   patrolResultTone,
   settingsDirty,
   toPatrolPatchBody,
 } from './logic';
-import type { BuddyPatrolState, PatrolAccount, PatrolLastResult, PatrolSettings } from './types';
+import type {
+  BuddyPatrolState,
+  PatrolAccount,
+  PatrolKind,
+  PatrolLastResult,
+  PatrolSettings,
+} from './types';
 import styles from './PatrolPage.module.scss';
 
 const ACCOUNT_TABS = ['all', 'codebuddy', 'workbuddy'];
@@ -46,6 +53,7 @@ const emptyState = (): BuddyPatrolState => ({
   homeMode: false,
   credits: defaultCreditsSettings(),
   activity: defaultActivitySettings(),
+  webDaily: defaultWebDailySettings(),
   accounts: [],
 });
 
@@ -60,9 +68,10 @@ export function PatrolPage() {
   const [state, setState] = useState<BuddyPatrolState>(emptyState);
   const [creditsDraft, setCreditsDraft] = useState<PatrolSettings>(defaultCreditsSettings);
   const [activityDraft, setActivityDraft] = useState<PatrolSettings>(defaultActivitySettings);
+  const [webDailyDraft, setWebDailyDraft] = useState<PatrolSettings>(defaultWebDailySettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [savingKind, setSavingKind] = useState<'credits' | 'activity' | null>(null);
+  const [savingKind, setSavingKind] = useState<PatrolKind | null>(null);
   const [tab, setTab] = useState('all');
 
   const disableControls = connectionStatus !== 'connected' || savingKind !== null;
@@ -71,6 +80,7 @@ export function PatrolPage() {
     setState(next);
     setCreditsDraft(next.credits);
     setActivityDraft(next.activity);
+    setWebDailyDraft(next.webDaily);
   }, []);
 
   const load = useCallback(async () => {
@@ -92,7 +102,7 @@ export function PatrolPage() {
   useHeaderRefresh(load, connectionStatus === 'connected');
 
   const patchAndReload = useCallback(
-    async (kind: 'credits' | 'activity', body: Record<string, unknown>) => {
+    async (kind: PatrolKind, body: Record<string, unknown>) => {
       setSavingKind(kind);
       try {
         await buddyPatrolApi.patch(body);
@@ -109,21 +119,25 @@ export function PatrolPage() {
   );
 
   const handleToggle = useCallback(
-    (kind: 'credits' | 'activity', enabled: boolean) => {
+    (kind: PatrolKind, enabled: boolean) => {
       void patchAndReload(kind, toPatrolPatchBody(kind, { enabled }));
     },
     [patchAndReload]
   );
 
   const handleSave = useCallback(
-    (kind: 'credits' | 'activity') => {
-      const draft = kind === 'credits' ? creditsDraft : activityDraft;
+    (kind: PatrolKind) => {
+      const draft =
+        kind === 'credits' ? creditsDraft : kind === 'activity' ? activityDraft : webDailyDraft;
       if (!isValidGoDuration(draft.interval) || !isValidGoDuration(draft.minAccountInterval)) {
         showNotification(t('patrol.invalid_duration'), 'error');
         return;
       }
-      if (kind === 'activity' && !draft.model.trim()) {
-        showNotification(t('patrol.invalid_model'), 'error');
+      if (kind !== 'credits' && !draft.model.trim()) {
+        showNotification(
+          t(kind === 'webDaily' ? 'patrol.invalid_web_daily_model' : 'patrol.invalid_model'),
+          'error'
+        );
         return;
       }
       void patchAndReload(
@@ -131,11 +145,11 @@ export function PatrolPage() {
         toPatrolPatchBody(kind, {
           interval: draft.interval,
           minAccountInterval: draft.minAccountInterval,
-          ...(kind === 'activity' ? { model: draft.model } : {}),
+          ...(kind === 'credits' ? {} : { model: draft.model }),
         })
       );
     },
-    [activityDraft, creditsDraft, patchAndReload, showNotification, t]
+    [activityDraft, creditsDraft, patchAndReload, showNotification, t, webDailyDraft]
   );
 
   const tabCounts = useMemo(() => {
@@ -154,17 +168,30 @@ export function PatrolPage() {
 
   const creditsDirty = settingsDirty(creditsDraft, state.credits, false);
   const activityDirty = settingsDirty(activityDraft, state.activity, true);
+  const webDailyDirty = settingsDirty(webDailyDraft, state.webDaily, true);
 
-  const renderLast = (account: PatrolAccount, kind: 'credits' | 'activity') => {
+  const renderLast = (account: PatrolAccount, kind: PatrolKind) => {
     if (kind === 'activity' && !account.activityEligible) {
       return <span className={styles.muted}>{t('patrol.not_applicable')}</span>;
     }
-    const last: PatrolLastResult | undefined = kind === 'credits' ? account.credits : account.activity;
+    if (kind === 'webDaily' && !account.webDailyEligible) {
+      return <span className={styles.muted}>{t('patrol.not_applicable')}</span>;
+    }
+    const last: PatrolLastResult | undefined =
+      kind === 'credits'
+        ? account.credits
+        : kind === 'activity'
+          ? account.activity
+          : account.webDaily;
     if (!last?.result && !last?.at) {
       return <span className={styles.muted}>{t('patrol.never')}</span>;
     }
     const tone = patrolResultTone(last.result);
-    const resultKey = last.result ? `patrol.result_${last.result}` : '';
+    const resultKey = last.result
+      ? kind === 'webDaily' && last.result === 'ok'
+        ? 'patrol.result_web_ok'
+        : `patrol.result_${last.result}`
+      : '';
     const resultLabel = last.result ? t(resultKey) : '';
     const atMs = last.at ? parseTimestamp(last.at)?.getTime() : undefined;
     return (
@@ -323,6 +350,64 @@ export function PatrolPage() {
             </Button>
           </div>
         </SectionCard>
+
+        <SectionCard
+          title={t('patrol.web_daily_title')}
+          description={t('patrol.web_daily_description')}
+          animateIn
+        >
+          <ToggleRow
+            title={t('patrol.enabled')}
+            description={t('patrol.web_daily_enabled_hint')}
+            checked={webDailyDraft.enabled}
+            disabled={disableControls}
+            onChange={(enabled) => handleToggle('webDaily', enabled)}
+          />
+          <div className={FIELDS_ROOT_CLASS}>
+            <FieldGrid>
+              <Input
+                label={t('patrol.interval')}
+                hint={t('patrol.interval_hint')}
+                value={webDailyDraft.interval}
+                disabled={disableControls}
+                onChange={(event) =>
+                  setWebDailyDraft((prev) => ({ ...prev, interval: event.target.value }))
+                }
+              />
+              <Input
+                label={t('patrol.min_account_interval')}
+                hint={t('patrol.min_account_interval_hint')}
+                value={webDailyDraft.minAccountInterval}
+                disabled={disableControls}
+                onChange={(event) =>
+                  setWebDailyDraft((prev) => ({
+                    ...prev,
+                    minAccountInterval: event.target.value,
+                  }))
+                }
+              />
+              <Input
+                label={t('patrol.model')}
+                hint={t('patrol.web_daily_model_hint')}
+                value={webDailyDraft.model}
+                disabled={disableControls}
+                onChange={(event) =>
+                  setWebDailyDraft((prev) => ({ ...prev, model: event.target.value }))
+                }
+              />
+            </FieldGrid>
+          </div>
+          <div className={styles.cardActions}>
+            <Button
+              size="sm"
+              disabled={disableControls || !webDailyDirty}
+              loading={savingKind === 'webDaily'}
+              onClick={() => handleSave('webDaily')}
+            >
+              {t('patrol.save')}
+            </Button>
+          </div>
+        </SectionCard>
       </div>
 
       <section className={styles.accounts}>
@@ -349,6 +434,7 @@ export function PatrolPage() {
                 <TableHead>{t('patrol.col_status')}</TableHead>
                 <TableHead>{t('patrol.col_credits')}</TableHead>
                 <TableHead>{t('patrol.col_activity')}</TableHead>
+                <TableHead>{t('patrol.col_web_daily')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -389,6 +475,7 @@ export function PatrolPage() {
                     </TableCell>
                     <TableCell>{renderLast(account, 'credits')}</TableCell>
                     <TableCell>{renderLast(account, 'activity')}</TableCell>
+                    <TableCell>{renderLast(account, 'webDaily')}</TableCell>
                   </TableRow>
                 );
               })}
