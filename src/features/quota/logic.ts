@@ -107,20 +107,5 @@ export const isQuotaRefreshDisabled = (
   resetting: boolean
 ): boolean => !canRefresh || loading || resetting;
 
-export interface QuotaPagination<T> {
-  pageItems: T[];
-  currentPage: number;
-  totalPages: number;
-}
-
-/** 页码越界时收敛到有效区间（列表缩短后停留在最后一页而不是空页）。 */
-export function paginate<T>(items: T[], page: number, pageSize: number): QuotaPagination<T> {
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const currentPage = Math.min(Math.max(1, page), totalPages);
-  const start = (currentPage - 1) * pageSize;
-  return {
-    pageItems: items.slice(start, start + pageSize),
-    currentPage,
-    totalPages,
-  };
-}
+export { paginate } from '@/utils/pagination';
+export type { Pagination as QuotaPagination } from '@/utils/pagination';

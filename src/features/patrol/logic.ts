@@ -195,3 +195,110 @@ export const patrolResultTone = (
 
 export const accountIdentity = (account: PatrolAccount): string =>
   account.email || account.name;
+
+/** Keep unsaved edits. Fields the server just accepted follow the reloaded value. */
+export function mergeDraftAfterReload(
+  draft: PatrolSettings,
+  prevSaved: PatrolSettings,
+  nextSaved: PatrolSettings,
+  savedFields?: readonly (keyof PatrolSettings)[]
+): PatrolSettings {
+  const accepted = new Set(savedFields ?? []);
+  const pick = <K extends keyof PatrolSettings>(key: K): PatrolSettings[K] => {
+    if (accepted.has(key) || draft[key] === prevSaved[key]) return nextSaved[key];
+    return draft[key];
+  };
+  return {
+    enabled: pick('enabled'),
+    interval: pick('interval'),
+    startupJitter: pick('startupJitter'),
+    minAccountInterval: pick('minAccountInterval'),
+    accountJitter: pick('accountJitter'),
+    minRemain: pick('minRemain'),
+    requestTimeout: pick('requestTimeout'),
+    model: pick('model'),
+  };
+}
+
+export type PatrolAccountFilter = 'all' | 'attention' | 'disabled' | 'pending';
+export const PATROL_ACCOUNT_FILTERS: readonly PatrolAccountFilter[] = [
+  'all',
+  'attention',
+  'disabled',
+  'pending',
+];
+export const PATROL_PAGE_SIZES = [20, 50, 100] as const;
+export const DEFAULT_PATROL_PAGE_SIZE = 20;
+
+export const isCreditsPatrolTarget = (account: PatrolAccount): boolean =>
+  account.disabled && account.disabledReason === 'credits_exhausted';
+
+export const patrolLastResult = (
+  account: PatrolAccount,
+  kind: PatrolKind
+): PatrolLastResult | undefined =>
+  kind === 'credits' ? account.credits : kind === 'activity' ? account.activity : account.webDaily;
+
+export const applicablePatrolKinds = (account: PatrolAccount): PatrolKind[] => {
+  const kinds: PatrolKind[] = [];
+  if (isCreditsPatrolTarget(account) || account.credits) kinds.push('credits');
+  if (account.activityEligible) kinds.push('activity');
+  if (account.webDailyEligible) kinds.push('webDaily');
+  return kinds;
+};
+
+export type PatrolTaskSummary = {
+  relevant: number;
+  ok: number;
+  warn: number;
+  bad: number;
+  never: number;
+};
+
+export const summarizePatrolTask = (
+  kind: PatrolKind,
+  accounts: readonly PatrolAccount[]
+): PatrolTaskSummary => {
+  const summary: PatrolTaskSummary = { relevant: 0, ok: 0, warn: 0, bad: 0, never: 0 };
+  accounts.forEach((account) => {
+    if (!applicablePatrolKinds(account).includes(kind)) return;
+    summary.relevant += 1;
+    const result = patrolLastResult(account, kind)?.result;
+    if (!result) {
+      summary.never += 1;
+      return;
+    }
+    const tone = patrolResultTone(result);
+    if (tone === 'ok' || tone === 'warn' || tone === 'bad') summary[tone] += 1;
+  });
+  return summary;
+};
+
+export const patrolAccountNeedsAttention = (account: PatrolAccount): boolean =>
+  account.disabled ||
+  applicablePatrolKinds(account).some((kind) => {
+    const tone = patrolResultTone(patrolLastResult(account, kind)?.result);
+    return tone === 'warn' || tone === 'bad';
+  });
+
+export const patrolAccountPending = (account: PatrolAccount): boolean =>
+  applicablePatrolKinds(account).some((kind) => !patrolLastResult(account, kind)?.result);
+
+export const filterPatrolAccounts = (
+  accounts: readonly PatrolAccount[],
+  options: { provider: string; query: string; filter: PatrolAccountFilter }
+): PatrolAccount[] => {
+  const query = options.query.trim().toLowerCase();
+  return accounts.filter((account) => {
+    if (options.provider !== 'all' && account.provider !== options.provider) return false;
+    if (query) {
+      const email = account.email.toLowerCase();
+      const name = account.name.toLowerCase();
+      if (!email.includes(query) && !name.includes(query)) return false;
+    }
+    if (options.filter === 'attention') return patrolAccountNeedsAttention(account);
+    if (options.filter === 'disabled') return account.disabled;
+    if (options.filter === 'pending') return patrolAccountPending(account);
+    return true;
+  });
+};
