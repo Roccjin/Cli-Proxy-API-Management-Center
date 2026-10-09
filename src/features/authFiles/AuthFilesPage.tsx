@@ -484,6 +484,13 @@ export function AuthFilesPage() {
 
   const activeCount = useMemo(() => files.filter((file) => file.disabled !== true).length, [files]);
   const problemCount = useMemo(() => files.filter(isProblemAuthFile).length, [files]);
+  const hasQoderFiles = useMemo(
+    () =>
+      files.some(
+        (file) => normalizeProviderKey(String(file.type ?? file.provider ?? '')) === 'qoder'
+      ),
+    [files]
+  );
 
   /* ---------- 首屏卡片一次性级联入场 ----------
    * 首批数据渲染后立即翻转 cardsAnimated；已挂载的卡片在挂载时捕获过
@@ -753,9 +760,11 @@ export function AuthFilesPage() {
       </section>
 
       <div className={styles.configGrid} ref={oauthSectionRef}>
-        <div className={styles.spanFull}>
-          <QoderDefaultsCard disableControls={disableControls} />
-        </div>
+        {hasQoderFiles && (
+          <div className={styles.spanFull}>
+            <QoderDefaultsCard disableControls={disableControls} />
+          </div>
+        )}
 
         <OAuthExcludedCard
           disableControls={disableControls}

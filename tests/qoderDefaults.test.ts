@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  QODER_INHERIT,
+  applyQoderDefaultField,
+  filterQoderRows,
+  qoderDefaultsEqual,
+  setQoderDefaultField,
+  unionThinkingLevels,
+} from '@/features/authFiles/qoderDefaultsLogic';
+import {
   catalogFromV1Models,
   extractCatalogDefault,
   extractContextSizes,
@@ -7,6 +15,7 @@ import {
   mergeCatalogWithDefaults,
   normalizeQoderCatalog,
   normalizeQoderModelDefaults,
+  type QoderCatalogModel,
 } from '../src/services/api/qoderDefaults';
 
 describe('Qoder model defaults', () => {
@@ -88,5 +97,78 @@ describe('Qoder model defaults', () => {
     const rows = fallbackQoderCatalog();
     expect(rows.some((row) => row.key === 'dfmodel')).toBe(true);
     expect(rows[0]?.contextSizes).toEqual(['200K', '400K', '1M']);
+  });
+});
+
+const model = (overrides: Partial<QoderCatalogModel>): QoderCatalogModel => ({
+  key: 'model',
+  displayName: 'Model',
+  thinkingLevels: [],
+  zeroAllowed: false,
+  contextSizes: ['200K', '400K', '1M'],
+  catalogContext: '200K',
+  ...overrides,
+});
+
+describe('qoder default editing', () => {
+  test('setQoderDefaultField removes an emptied key without mutating the input', () => {
+    const input = Object.freeze({ a: Object.freeze({ thinking: 'max' }) });
+    const next = setQoderDefaultField(input, 'a', 'thinking', '');
+    expect(next).toEqual({});
+    expect(input).toEqual({ a: { thinking: 'max' } });
+  });
+
+  test('applyQoderDefaultField writes only rows that support the value', () => {
+    const rows = [
+      model({ key: 'a', thinkingLevels: ['high', 'max'], zeroAllowed: false }),
+      model({ key: 'b', thinkingLevels: [], zeroAllowed: false }),
+    ];
+    const thinking = applyQoderDefaultField({}, rows, 'thinking', 'max');
+    expect(thinking.applied).toBe(1);
+    expect(thinking.skipped).toBe(1);
+    expect(thinking.next).toEqual({ a: { thinking: 'max' } });
+
+    const context = applyQoderDefaultField({}, rows, 'context', '1M');
+    expect(context.next).toEqual({ a: { context: '1M' }, b: { context: '1M' } });
+
+    const cleared = applyQoderDefaultField(
+      { a: { thinking: 'max' }, b: { thinking: 'high' } },
+      rows,
+      'thinking',
+      QODER_INHERIT
+    );
+    expect(cleared.applied).toBe(2);
+    expect(cleared.skipped).toBe(0);
+    expect(cleared.next).toEqual({});
+  });
+
+  test('qoderDefaultsEqual ignores key order and empty entries', () => {
+    expect(qoderDefaultsEqual({ b: { context: '1M' }, a: { thinking: 'max' } }, {
+      a: { thinking: 'max' },
+      b: { context: '1M' },
+    })).toBe(true);
+    expect(qoderDefaultsEqual({ a: {} }, {})).toBe(true);
+    expect(qoderDefaultsEqual({ a: { thinking: 'max' } }, { a: { thinking: 'high' } })).toBe(false);
+  });
+
+  test('filterQoderRows matches name or key and can keep overrides only', () => {
+    const rows = [
+      model({ key: 'gmodel', displayName: 'GLM-5.3' }),
+      model({ key: 'dfmodel', displayName: 'DeepSeek-Flash' }),
+    ];
+    const defaults = { gmodel: { context: '1M' } };
+    expect(filterQoderRows(rows, defaults, 'glm', false).map((row) => row.key)).toEqual(['gmodel']);
+    expect(filterQoderRows(rows, defaults, 'DFMODEL', false).map((row) => row.key)).toEqual([
+      'dfmodel',
+    ]);
+    expect(filterQoderRows(rows, defaults, '', true).map((row) => row.key)).toEqual(['gmodel']);
+  });
+
+  test('unionThinkingLevels follows the catalog order', () => {
+    const rows = [
+      model({ thinkingLevels: ['max', 'low'] }),
+      model({ key: 'b', thinkingLevels: ['high'] }),
+    ];
+    expect(unionThinkingLevels(rows)).toEqual(['low', 'high', 'max']);
   });
 });
